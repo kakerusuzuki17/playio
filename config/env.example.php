@@ -1,0 +1,6 @@
+<?php
+
+return [
+    'IGDB_CLIENT_ID' => 'YOUR_CLIENT_ID',
+    'IGDB_CLIENT_SECRET' => '"YOUR_CLIENT_SECRET"'
+];
