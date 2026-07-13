@@ -6,9 +6,13 @@
 
 ゲームごとに投稿を検索したり、
 スクリーンショットやプレイ記録を投稿できるSNSです。
-
 IGDB APIを利用してゲーム情報を検索できます。
 
+ホーム画面
+<img width="3839" height="2159" alt="スクリーンショット 2026-07-12 184044" src="https://github.com/user-attachments/assets/57ad11d6-f125-4088-98aa-7b405b1adf09" />
+
+投稿画面
+<img width="3839" height="2159" alt="スクリーンショット 2026-07-12 185206" src="https://github.com/user-attachments/assets/4ad373a1-5bf6-451b-a967-bb99b3a35b0f" />
 ## 主な機能
 
 - ユーザー登録・ログイン
