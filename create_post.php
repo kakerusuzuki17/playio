@@ -138,6 +138,18 @@ if ($new_division_name !== "") {
         header("Location: new_post.php");
         exit;
     }
+
+// タイムアタック・ハイスコアは部門必須
+
+    if (
+        in_array((int)$category_id, [1, 2], true) &&
+        $division_id === null &&
+        $new_division_name === ""
+    ) {
+        $_SESSION["error"] = "タイムアタック・ハイスコアでは部門を選択、または新しく作成してください。";
+        header("Location: new_post.php");
+        exit;
+    }
 }
 
 // 投稿をpostsにINSERT

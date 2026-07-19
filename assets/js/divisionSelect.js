@@ -76,6 +76,11 @@ document.addEventListener("DOMContentLoaded", () => {
      */
     async function loadDivisions() {
 
+        console.trace("loadDivisions");
+
+
+        const currentDivisionId = divisionSelect.value;
+
         resetDivisionField();
 
         // タイムアタック・ハイスコア以外
@@ -143,14 +148,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             result.divisions.forEach(division => {
 
-                const option =
-                    document.createElement("option");
+            const option = document.createElement("option");
 
                 option.value = division.id;
                 option.textContent = division.name;
 
                 divisionSelect.appendChild(option);
+
             });
+
+            if (currentDivisionId !== "") {
+                divisionSelect.value = currentDivisionId;
+            }
 
             if (result.divisions.length === 0) {
 

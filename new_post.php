@@ -455,5 +455,29 @@ $favoriteGames = $stmt->fetchAll();
 <script src="assets/js/tagSearch.js"></script>
 <script src="assets/js/newPostAddForm.js"></script>
 
+<script>
+document.querySelector(".new-post-form").addEventListener("submit", function (e) {
+
+    const category = document.getElementById("categorySelect").value;
+    const division = document.getElementById("divisionSelect").value;
+    const newDivision = document
+        .getElementById("newDivisionName")
+        .value
+        .trim();
+
+    // ハイスコア・タイムアタックは部門必須
+    if (
+        (category === "1" || category === "2") &&
+        division === "" &&
+        newDivision === ""
+    ) {
+        e.preventDefault();
+        alert("部門を選択するか、新しい部門を追加してください。");
+        return;
+    }
+
+});
+</script>
+
 </body>
 </html>
