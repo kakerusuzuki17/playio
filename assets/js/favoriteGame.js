@@ -25,9 +25,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const igdbIdInput =
         document.getElementById("igdbId");
 
-    const gameIdInput =
-        document.getElementById("gameId");
-
     const gameNameInput =
         document.getElementById("gameName");
 
@@ -40,16 +37,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // 選択解除ボタン
     const clearGameButton =
         document.getElementById("clearGameButton");
-
-    const categorySelect =
-        document.getElementById("categorySelect");
-
-    const divisionArea =
-        document.getElementById("divisionSearchArea");
-
-    const divisionSelect =
-        document.getElementById("divisionSearchSelect");
-
 
     /**
      * ゲームを選択したときに実行する共通処理
@@ -73,7 +60,6 @@ document.addEventListener("DOMContentLoaded", () => {
             : game.genres ?? "";
 
     // hidden input
-    gameIdInput.value = gameId;
     igdbIdInput.value = igdbId;
     gameNameInput.value = name;
     gameCoverInput.value = cover;
@@ -88,13 +74,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (cover !== "") {
         selectedGameCover.src = cover;
+        selectedGameCover.alt = `${name}のゲーム画像`;
         selectedGameCover.style.display = "block";
     } else {
-        selectedGameCover.src = "";
+        selectedGameCover.removeAttribute("src");
+        selectedGameCover.alt = "";
         selectedGameCover.style.display = "none";
     }
 
-    selectedGame.style.display = "flex";
+    selectedGame.classList.add("is-visible");
 
     // 検索結果を閉じる
     gameResults.innerHTML = "";
@@ -118,7 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
         // hidden inputを空にする
         igdbIdInput.value = "";
-        gameIdInput.value = "";
         gameNameInput.value = "";
         gameCoverInput.value = "";
         gameGenresInput.value = "";
@@ -131,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
         selectedGameCover.style.display = "block";
 
         // 選択欄を非表示
-        selectedGame.style.display = "none";
+        selectedGame.classList.remove("is-visible");
 
         // 検索欄を空にする
         if (gameSearchInput) {
@@ -353,94 +340,6 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-/*
-|--------------------------------------------------------------------------
-| 部門検索
-|--------------------------------------------------------------------------
-*/
-
-async function loadDivisions() {
-    const gameId = gameIdInput.value;
-    const categoryId = categorySelect.value;
-
-    const selectedDivisionId =
-        divisionSelect.dataset.selectedDivisionId ?? "";
-
-    /*
-     * ゲームまたはカテゴリが未選択
-     */
-    if (!gameId || !categoryId) {
-        divisionSelect.disabled = true;
-        return;
-    }
-
-    divisionSelect.disabled = true;
-
-    try {
-        const params = new URLSearchParams({
-            game_id: gameId,
-            category_id: categoryId
-        });
-
-        const response = await fetch(
-            `get_divisions.php?${params.toString()}`
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `部門取得エラー: ${response.status}`
-            );
-        }
-
-        const data = await response.json();
-
-        if (!data.success) {
-            throw new Error(
-                data.message ?? "部門取得に失敗しました"
-            );
-        }
-
-        const divisions = data.divisions;
-        divisionSelect.innerHTML =
-            '<option value="">すべての部門</option>';
-
-        if (!Array.isArray(divisions)) {
-            throw new Error(
-                "部門取得APIの形式が正しくありません"
-            );
-        }
-
-        divisions.forEach(division => {
-            const option =
-                document.createElement("option");
-
-            option.value = division.id;
-            option.textContent = division.name;
-
-            if (
-                String(division.id) ===
-                String(selectedDivisionId)
-            ) {
-                option.selected = true;
-            }
-
-            divisionSelect.appendChild(option);
-        });
-        if (selectedDivisionId) {
-            divisionSelect.value = selectedDivisionId;
-}
-
-    } catch (error) {
-        console.error(error);
-
-        divisionSelect.innerHTML =
-            '<option value="">部門を取得できませんでした</option>';
-
-    } finally {
-        divisionSelect.disabled = false;
-    }
-}
-
 /**
  * 検索結果の外をクリックしたら閉じる
  */
@@ -463,61 +362,4 @@ document.addEventListener("click", event => {
 
 });
 
-function updateDivisionArea() {
-    const categoryId = categorySelect.value;
-
-    const canUseDivision =
-        categoryId === "1" ||
-        categoryId === "2";
-
-    if (!canUseDivision) {
-        divisionArea.style.display = "none";
-
-        divisionSelect.innerHTML =
-            '<option value="">すべての部門</option>';
-
-        divisionSelect.value = "";
-        divisionSelect.disabled = true;
-
-        return;
-    }
-
-    divisionArea.style.display = "";
-
-    if (!gameIdInput.value) {
-        divisionSelect.disabled = true;
-
-        divisionSelect.innerHTML =
-            '<option value="">先にゲームを選択してください</option>';
-
-        return;
-    }
-
-    loadDivisions();
-}
-
-categorySelect.addEventListener(
-    "change",
-    updateDivisionArea
-);
-
-document.addEventListener(
-    "game-selected",
-    updateDivisionArea
-);
-
-document.addEventListener(
-    "game-cleared",
-    updateDivisionArea
-);
-
-/*
-* 検索後の再表示にも対応
-*/
-updateDivisionArea();
-});
-
-divisionSelect.addEventListener("change", () => {
-    document.getElementById("divisionId").value =
-        divisionSelect.value;
 });

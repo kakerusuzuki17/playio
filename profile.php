@@ -463,7 +463,7 @@ $favoriteGameCount = count($favoriteGames);
 
             <div class="timeline-toolbar">
                 <h3><?= $profileUserName ?>の投稿一覧</h3>
-                <form action="profile.php" method="get" class="sort-form">
+                <form action="profile.php?account_id=<?= $_SESSION["account_id"] ?>" method="get" class="sort-form">
                     <select
                         name="sort"
                         onchange="this.form.submit()"

@@ -21,5 +21,5 @@ $stmt->execute([
     $userId, $deleteFavoriteGamesId
 ]);
 
-header("Location: profile.php");
+header("Location: profile.php?account_id=" . $_SESSION["account_id"]);
 exit;

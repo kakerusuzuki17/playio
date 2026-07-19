@@ -16,7 +16,11 @@ unset($_SESSION["error"]);
     <meta charset="UTF-8">
     <link rel="icon" type="image/png" href="assets/images/favicon.png">
     <title>お気に入りゲーム追加</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/search_posts.css">
+    <link rel="stylesheet" href="assets/css/edit_profile.css">
 </head>
 <body>
 
@@ -30,7 +34,7 @@ unset($_SESSION["error"]);
         <div class="post-box">
             <h2>お気に入りゲームを追加</h2>
 
-            <a href="profile.php">← プロフィールに戻る</a>
+            <a href="profile.php?account_id=<?= $_SESSION["account_id"] ?>">← プロフィールに戻る</a>
 
             <?php if ($error): ?>
                 <p class="error-message">
@@ -47,16 +51,19 @@ unset($_SESSION["error"]);
                     autocomplete="off"
                 >
 
+                <!-- 検索候補だけを表示する場所 -->
                 <div id="gameResults"></div>
 
-                <div id="selectedGame" style="display:none;">
+                <!-- 選択したゲームを表示する場所 -->
+                <div id="selectedGame">
+
                     <img
                         id="selectedGameCover"
                         src=""
                         alt="ゲーム画像"
                     >
 
-                    <div>
+                    <div class="selected-game-info">
                         <h3 id="selectedGameName"></h3>
                         <p id="selectedGameGenres"></p>
                     </div>
@@ -68,6 +75,7 @@ unset($_SESSION["error"]);
                     >
                         × 選択解除
                     </button>
+
                 </div>
 
                 <input type="hidden" name="igdb_id" id="igdbId">
@@ -78,12 +86,13 @@ unset($_SESSION["error"]);
                 <button type="submit">
                     お気に入りに追加
                 </button>
+
             </form>
         </div>
     </main>
 </div>
 
-<script src="assets/js/gameSearch.js"></script>
+<script src="assets/js/favoriteGame.js"></script>
 
 </body>
 </html>

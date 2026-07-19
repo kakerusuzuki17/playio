@@ -92,7 +92,7 @@ try {
 
     $pdo->commit();
 
-    header("Location: profile.php");
+    header("Location: profile.php?account_id=" . $_SESSION["account_id"]);
     exit;
 
 } catch (Throwable $e) {
