@@ -109,12 +109,17 @@ $sql = "SELECT
             posts.id,
             posts.content,
             posts.created_at,
+            posts.game_id AS game_id,
             games.igdb_id AS igdb_id,
             games.name AS game_name,
             games.cover AS game_cover,
             games.genres AS game_genres,
             games.release_date AS game_released,
-            users.account_id,
+            categories.id AS category_id,
+            divisions.id AS division_id,
+            divisions.name AS division_name,
+            users.id AS user_id,
+            users.account_id AS account_id,
             users.user_name,
             (
                 SELECT COUNT(*)
@@ -129,18 +134,73 @@ $sql = "SELECT
             ) AS liked_by_me,
             highscore.score AS score,
             cleartime.time_ms AS time_ms,
+            score_ranking.score_rank AS score_rank,
+            time_ranking.time_rank AS time_rank,
             categories.name AS category_name
         FROM posts
         JOIN users
             ON posts.user_id = users.id
         LEFT JOIN games
             ON posts.game_id = games.id
+        LEFT JOIN divisions
+            ON posts.division_id = divisions.id
         LEFT JOIN highscore
             ON posts.id = highscore.post_id
         LEFT JOIN cleartime
             ON posts.id = cleartime.post_id
         LEFT JOIN categories
             ON posts.category_id = categories.id
+        LEFT JOIN (
+                SELECT
+                    ranked_scores.post_id,
+                    DENSE_RANK() OVER (
+                        PARTITION BY
+                            ranked_scores.game_id,
+                            ranked_scores.category_id,
+                            COALESCE(ranked_scores.division_id, 0)
+                        ORDER BY
+                            ranked_scores.score DESC
+                    ) AS score_rank
+                FROM (
+                    SELECT
+                        posts.id AS post_id,
+                        posts.game_id,
+                        posts.category_id,
+                        posts.division_id,
+                        highscore.score
+                    FROM posts
+                    JOIN highscore
+                        ON posts.id = highscore.post_id
+                    WHERE highscore.score IS NOT NULL
+                ) AS ranked_scores
+            ) AS score_ranking
+                ON posts.id = score_ranking.post_id
+
+            LEFT JOIN (
+                SELECT
+                    ranked_times.post_id,
+                    DENSE_RANK() OVER (
+                        PARTITION BY
+                            ranked_times.game_id,
+                            ranked_times.category_id,
+                            COALESCE(ranked_times.division_id, 0)
+                        ORDER BY
+                            ranked_times.time_ms ASC
+                    ) AS time_rank
+                FROM (
+                    SELECT
+                        posts.id AS post_id,
+                        posts.game_id,
+                        posts.category_id,
+                        posts.division_id,
+                        cleartime.time_ms
+                    FROM posts
+                    JOIN cleartime
+                        ON posts.id = cleartime.post_id
+                    WHERE cleartime.time_ms IS NOT NULL
+                ) AS ranked_times
+            ) AS time_ranking
+                ON posts.id = time_ranking.post_id
         WHERE posts.user_id = ?
         ORDER BY {$orderBy}";
 
@@ -306,7 +366,7 @@ $favoriteGameCount = count($favoriteGames);
 
                             <?php
                                 $profileUrl =
-                                    "http://localhost/playio/profile.php?account_id=" .
+                                    "profile.php?account_id=" .
                                     urlencode($profileUser["account_id"]);
                                 ?>
 
@@ -378,7 +438,7 @@ $favoriteGameCount = count($favoriteGames);
                                         </div>
 
                                     </div>
-                                    
+
                                 <?php endif; ?>
                             </a>
                             <?php if ($userId == $profileUserId) :?>
@@ -520,23 +580,31 @@ $favoriteGameCount = count($favoriteGames);
                             <?php endif; ?>
 
                             <!-- ハイスコア -->
-                            <?php if ($post["score"] !== null): ?>
+                            <div class="post-records">
 
-                                <p class="high-score">
-                                    <?= htmlspecialchars($post["score"]) ?>
-                                </p>
+                                <?php if ($post["score"] !== null): ?>
+                                    <span class="ranking-badge">
+                                        <?= htmlspecialchars($post["score_rank"]) ?>位
+                                    </span>
 
-                            <?php endif; ?>
+                                    <span class="high-score">
+                                        🏆 <?= htmlspecialchars($post["score"]) ?>
+                                    </span>
+                                <?php endif; ?>
 
-                            <!-- クリアタイム -->
-                            <?php if ($post["time_ms"] !== null): ?>
+                                <?php if ($post["time_ms"] !== null): ?>
+                                    <span class="ranking-badge">
+                                        <?= htmlspecialchars($post["time_rank"]) ?>位
+                                    </span>
 
-                                <p class="clear-time">
-                                    ⏱ <?= htmlspecialchars(
-                                        formatTimeMs($post["time_ms"])
-                                    ) ?>
-                                </p>
-                            <?php endif; ?>
+                                    <span class="clear-time">
+                                        ⏱ <?= htmlspecialchars(
+                                            formatTimeMs($post["time_ms"])
+                                        ) ?>
+                                    </span>
+                                <?php endif; ?>
+
+                            </div>
 
                             <!-- 投稿本文 -->
                             <div class="post-content">
@@ -551,13 +619,24 @@ $favoriteGameCount = count($favoriteGames);
                                     <!-- 左側 -->
                                     <div class="post-footer-category">
 
-                                        <!-- カテゴリ -->
-                                        <?php if (!empty($post["category_name"])): ?>
-                                            <span class="post-category">
-                                                <?= htmlspecialchars($post["category_name"]) ?>
-                                            </span>
-                                        <?php endif; ?>
+                                        <div class="post-category-group">
 
+                                            <!-- カテゴリ -->
+                                            <?php if (!empty($post["category_name"])): ?>
+                                                <a
+                                                    class="post-category"
+                                                    href="search_posts.php?category_id=<?= $post["category_id"] ?>"
+                                                >
+                                                    <?= htmlspecialchars($post["category_name"]) ?>
+                                                </a>
+                                            <?php endif; ?>
+
+                                            <?php if (!empty($post["division_name"])): ?>
+                                                <a class="post-division" href="search_posts.php?game_id=<?= $post["game_id"] ?>&igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= urlencode($post["game_name"]) ?>&game_cover=<?= urlencode($post["game_cover"]) ?>&game_genres=<?= urlencode($post["game_genres"]) ?>&category_id=<?= $post["category_id"] ?>&division_id=<?= $post["division_id"] ?>">
+                                                    <?= htmlspecialchars($post["division_name"]) ?>
+                                                </a>
+                                            <?php endif; ?>
+                                        </div>
                                         <!-- タグ -->
                                         <?php
                                         $tags = $postTags[$post["id"]] ?? [];
@@ -664,12 +743,13 @@ $favoriteGameCount = count($favoriteGames);
                                             </div>
 
                                             <?php if (!empty($post["game_cover"])): ?>
-
-                                                <img
-                                                    src="<?= htmlspecialchars($post["game_cover"]) ?>"
-                                                    alt="<?= htmlspecialchars($post["game_name"]) ?>"
-                                                    class="post-footer-game-cover"
-                                                >
+                                                <a href="search_posts.php?game_id=<?= $post["game_id"] ?>&igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= $post["game_name"] ?>&game_cover=<?= $post["game_cover"] ?>&game_genres=<?= $post["game_genres"] ?>">
+                                                    <img
+                                                        src="<?= htmlspecialchars($post["game_cover"]) ?>"
+                                                        alt="<?= htmlspecialchars($post["game_name"]) ?>"
+                                                        class="post-footer-game-cover"
+                                                    >
+                                                </a>
                                             <?php endif; ?>
                                         </div>
                                     <?php endif; ?>
@@ -832,7 +912,7 @@ $favoriteGameCount = count($favoriteGames);
                 <strong>
                     <?php
                     $profileUrl =
-                        "http://localhost/playio/profile.php?account_id=" .
+                        "profile.php?account_id=" .
                         urlencode($profileUser["account_id"]);
                     ?>
 

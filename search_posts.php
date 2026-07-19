@@ -546,11 +546,12 @@ function formatTimeMs($timeMs)
                                     </span>
                                 </div>
 
-                                <small>
-                                    <?= htmlspecialchars($post["created_at"]) ?>
-                                </small>
+                                    <small>
+                                        <?= htmlspecialchars($post["created_at"]) ?>
+                                    </small>
 
-                            </div>
+                                </div>
+                            </a>
 
                         </div>
 
@@ -740,7 +741,7 @@ function formatTimeMs($timeMs)
 
                                         <!-- ゲームカバー -->
                                         <?php if (!empty($post["game_cover"])): ?>
-                                            <a href="http://localhost/playio/search_posts.php?igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= $post["game_name"] ?>&game_cover=<?= $post["game_cover"] ?>&game_genres=<?= $post["game_genres"] ?>">
+                                            <a href="search_posts.php?igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= urlencode($post["game_name"]) ?>&game_cover=<?= urlencode($post["game_cover"]) ?>&game_genres=<?= urlencode($post["game_genres"]) ?>">
                                                 <img
                                                     src="<?= htmlspecialchars($post["game_cover"]) ?>"
                                                     alt="<?= htmlspecialchars($post["game_name"]) ?>"

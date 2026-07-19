@@ -466,7 +466,8 @@ $favoriteInfo["favorite_by_me"] =
                         </span>
                     <?php endif; ?>
                         <a href="search_posts.php?igdb_id=<?= $igdbId ?>&game_name=<?= $gameName ?>&game_cover=<?= $coverUrl ?>&game_genres=<?= $genreText ?>">
-                    みんなの投稿へ >>
+                            みんなの投稿へ >>
+                        </a>
                     <dl class="game-meta">
 
                         <div>
