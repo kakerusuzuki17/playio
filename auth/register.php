@@ -8,12 +8,17 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $user_name = trim($_POST["user_name"]);
     $account_id = trim($_POST["account_id"]);
     $password = $_POST["password"];
+    $passwordCheck = $_POST["password_check"];
 
     // パスワードを暗号化
     $hash = password_hash($password, PASSWORD_DEFAULT);
 
     if (!preg_match('/^[A-Za-z][A-Za-z0-9_]{3,19}$/', $account_id)) {
         $error = "アカウントIDは英字で始まり、半角英数字とアンダースコア(_)のみ、4～20文字で入力してください。";
+    }
+
+    elseif ($password != $passwordCheck) {
+        $error = "同じパスワードを2回入力してください。";
     }
 
     // アカウントIDの重複確認
@@ -54,10 +59,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>新規登録</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/login.css">
 </head>
 <body>
 
@@ -94,6 +101,13 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             type="password"
             name="password"
             placeholder="パスワード"
+            required
+        >
+
+        <input
+            type="password_check"
+            name="password_check"
+            placeholder="パスワード(確認用)"
             required
         >
 

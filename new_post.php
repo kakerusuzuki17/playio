@@ -15,11 +15,29 @@ $sql = "SELECT
             id,
             name
         FROM categories
-        ORDER BY id ASC";
+        ORDER BY FIELD(
+            id,
+            6,4,5,3,1,2,7)";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute();
 $categories = $stmt->fetchAll();
+
+// お気に入りゲーム一覧
+$sql = "SELECT
+        games.id AS game_id,
+        games.igdb_id AS igdb_id,
+        games.name AS game_name,
+        games.cover AS game_cover,
+        games.genres AS game_genres
+    FROM favorite_games
+    JOIN games
+        ON favorite_games.game_id = games.id
+    WHERE favorite_games.user_id = ?
+    ORDER BY game_name ASC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$currentId]);
+$favoriteGames = $stmt->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -27,12 +45,15 @@ $categories = $stmt->fetchAll();
 <head>
     <meta charset="UTF-8">
     <title>投稿する</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/new_post.css">
 </head>
 <body>
 
 <div class="container">
-
+<?php require __DIR__ . "/includes/sidebar.php"; ?>
     <main class="main new-post-page">
 
         <div class="new-post-container">
@@ -66,40 +87,116 @@ $categories = $stmt->fetchAll();
             >
 
                 <!-- ゲーム -->
-                <section class="form-section">
-                    <div class="form-section-header">
-                        <span class="form-step">1</span>
+                <div class="form-group game-select-area">
 
-                        <div>
-                            <h3>ゲームを選択</h3>
-                            <p>投稿するゲームを検索してください</p>
+                    <label for="gameSearch">ゲーム</label>
+
+                    <input
+                        type="text"
+                        id="gameSearch"
+                        placeholder="ゲーム名を検索"
+                        autocomplete="off"
+                    >
+
+                    <div id="gameResults"></div>
+
+                    <!-- お気に入りゲーム -->
+                    <?php if (!empty($favoriteGames)): ?>
+
+                        <div class="favorite-game-picker">
+
+                            <h3 class="favorite-game-picker-title">
+                                ★ お気に入りから選ぶ
+                            </h3>
+
+                            <div class="favorite-game-picker-list">
+
+                                <?php foreach ($favoriteGames as $game): ?>
+
+                                    <button
+                                        type="button"
+                                        class="favorite-game-card"
+                                        data-game-id="<?= (int)$game["game_id"] ?>"
+                                        data-id="<?= (int)$game["igdb_id"] ?>"
+                                        data-name="<?= htmlspecialchars(
+                                            $game["game_name"],
+                                            ENT_QUOTES,
+                                            "UTF-8"
+                                        ) ?>"
+                                        data-cover="<?= htmlspecialchars(
+                                            $game["game_cover"] ?? "",
+                                            ENT_QUOTES,
+                                            "UTF-8"
+                                        ) ?>"
+                                        data-genres="<?= htmlspecialchars(
+                                            $game["game_genres"] ?? "",
+                                            ENT_QUOTES,
+                                            "UTF-8"
+                                        ) ?>"
+                                    >
+
+                                        <?php if (!empty($game["game_cover"])): ?>
+
+                                            <img
+                                                src="<?= htmlspecialchars(
+                                                    $game["game_cover"],
+                                                    ENT_QUOTES,
+                                                    "UTF-8"
+                                                ) ?>"
+                                                alt="<?= htmlspecialchars(
+                                                    $game["game_name"],
+                                                    ENT_QUOTES,
+                                                    "UTF-8"
+                                                ) ?>"
+                                                class="favorite-game-picker-cover"
+                                            >
+
+                                        <?php else: ?>
+
+                                            <div class="favorite-game-picker-no-cover">
+                                                No Image
+                                            </div>
+
+                                        <?php endif; ?>
+
+                                        <span class="favorite-game-picker-name">
+                                            <?= htmlspecialchars(
+                                                $game["game_name"],
+                                                ENT_QUOTES,
+                                                "UTF-8"
+                                            ) ?>
+                                        </span>
+
+                                    </button>
+
+                                <?php endforeach; ?>
+
+                            </div>
+
                         </div>
-                    </div>
 
-                    <div class="form-field">
-                        <label for="gameSearch">ゲーム名</label>
+                    <?php endif; ?>
 
-                        <input
-                            type="text"
-                            id="gameSearch"
-                            placeholder="例：Street Fighter 6"
-                            autocomplete="off"
-                        >
 
-                        <div id="gameResults"></div>
-                    </div>
+                    <!-- 選択中のゲーム -->
+                    <div
+                        id="selectedGame"
+                        class="selected-game"
+                        style="display:none;"
+                    >
 
-                    <div id="selectedGame" style="display:none;">
                         <img
                             id="selectedGameCover"
                             src=""
-                            alt="ゲーム画像"
+                            alt="選択したゲーム画像"
                         >
 
                         <div class="selected-game-info">
-                            <h3 id="selectedGameName"></h3>
-                            <p id="selectedGameGenres"></p>
-                            <p id="selectedGameReleased"></p>
+
+                            <strong id="selectedGameName"></strong>
+
+                            <small id="selectedGameGenres"></small>
+
                         </div>
 
                         <button
@@ -107,16 +204,44 @@ $categories = $stmt->fetchAll();
                             id="clearGameButton"
                             class="clear-game-button"
                         >
-                            選択解除
+                            ×
                         </button>
+
                     </div>
 
-                    <input type="hidden" name="igdb_id" id="igdbId">
-                    <input type="hidden" name="game_name" id="gameName">
-                    <input type="hidden" name="game_cover" id="gameCover">
-                    <input type="hidden" name="game_genres" id="gameGenres">
-                    <input type="hidden" name="game_released" id="gameReleased">
-                </section>
+
+                    <!-- 投稿時に送信する値 -->
+                    <input
+                        type="hidden"
+                        name="igdb_id"
+                        id="igdbId"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="game_id"
+                        id="gameId"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="game_name"
+                        id="gameName"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="game_cover"
+                        id="gameCover"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="game_genres"
+                        id="gameGenres"
+                    >
+
+                </div>
 
                 <!-- 投稿内容 -->
                 <section class="form-section">
@@ -142,11 +267,63 @@ $categories = $stmt->fetchAll();
                                 <option value="">選択してください</option>
 
                                 <?php foreach ($categories as $category): ?>
-                                    <option value="<?= (int)$category["id"] ?>">
+                                    <option value="<?= (int)$category["id"] ?>"
+                                    data-category-name="<?= htmlspecialchars($category["name"], ENT_QUOTES, "UTF-8") ?>">
                                         <?= htmlspecialchars($category["name"]) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
+                        </div>
+
+                        <div
+                            id="divisionField"
+                            class="form-field form-grid-wide"
+                            style="display:none;"
+                        >
+                            <label for="divisionSelect">部門</label>
+
+                            <select
+                                name="division_id"
+                                id="divisionSelect"
+                            >
+                                <option value="">部門を選択してください</option>
+                            </select>
+
+                            <button
+                                type="button"
+                                id="showNewDivisionButton"
+                                class="show-new-division-button"
+                            >
+                                ＋ 新しい部門を追加
+                            </button>
+
+                            <div
+                                id="newDivisionArea"
+                                class="new-division-area"
+                                style="display:none;"
+                            >
+                                <label for="newDivisionName">
+                                    新しい部門名
+                                </label>
+
+                                <input
+                                    type="text"
+                                    name="new_division_name"
+                                    id="newDivisionName"
+                                    maxlength="100"
+                                    placeholder="例：Any%、100%、HARD"
+                                >
+
+                                <button
+                                    type="button"
+                                    id="cancelNewDivisionButton"
+                                    class="cancel-new-division-button"
+                                >
+                                    既存の部門から選ぶ
+                                </button>
+                            </div>
+
+                            <p id="divisionMessage" class="division-message"></p>
                         </div>
 
                         <div
@@ -274,6 +451,7 @@ $categories = $stmt->fetchAll();
 </div>
 
 <script src="assets/js/gameSearch.js"></script>
+<script src="assets/js/divisionSelect.js"></script>
 <script src="assets/js/tagSearch.js"></script>
 <script src="assets/js/newPostAddForm.js"></script>
 

@@ -75,5 +75,5 @@ $stmt->execute([
     $deletePostId
 ]);
 
-header("Location: profile.php");
+header("Location: profile.php?profileUserId=" . $_SESSION["id"]);
 exit;

@@ -16,7 +16,11 @@ $game_cover = $_POST["game_cover"] ?? null;
 $game_genres = $_POST["game_genres"] ?? null;
 
 $category_id = $_POST["category_select"] ?? null;
-$spoiler = $_POST["spoiler"] ? 1 : 0;
+
+$division_id = $_POST["division_id"] ?? null;
+$new_division_name = trim($_POST["new_division_name"] ?? "");
+
+$spoiler = isset($_POST["spoiler"]) ? 1 : 0;
 
 $high_score = $_POST["high_score"]?? null;
 
@@ -76,20 +80,86 @@ if ($game) {
     $game_id = $pdo->lastInsertId();
 }
 
+$division_id =
+    $division_id !== null && $division_id !== ""
+        ? (int)$division_id
+        : null;
+
+if ($new_division_name !== "") {
+
+    $sql = "
+        INSERT INTO divisions (
+            game_id,
+            category_id,
+            name,
+            created_by
+        )
+        VALUES (?, ?, ?, ?)
+        ON DUPLICATE KEY UPDATE
+            id = LAST_INSERT_ID(id)
+    ";
+
+    $stmt = $pdo->prepare($sql);
+
+    $stmt->execute([
+        $game_id,
+        $category_id,
+        $new_division_name,
+        $_SESSION["id"]
+    ]);
+
+    $division_id = (int)$pdo->lastInsertId();
+
+} elseif ($division_id !== null) {
+
+    /*
+     * 選択された既存部門が、
+     * 選択中のゲーム・カテゴリに属しているか確認
+     */
+    $sql = "
+        SELECT id
+        FROM divisions
+        WHERE id = ?
+        AND game_id = ?
+        AND category_id = ?
+        LIMIT 1
+    ";
+
+    $stmt = $pdo->prepare($sql);
+
+    $stmt->execute([
+        $division_id,
+        $game_id,
+        $category_id
+    ]);
+
+    if (!$stmt->fetchColumn()) {
+        $_SESSION["error"] = "選択された部門が正しくありません。";
+        header("Location: new_post.php");
+        exit;
+    }
+}
+
 // 投稿をpostsにINSERT
-$sql = "INSERT INTO posts(
+$sql = "
+    INSERT INTO posts (
         user_id,
         game_id,
         category_id,
+        division_id,
         content,
         spoiler
     )
-    VALUES(?,?,?,?,?)";
+    VALUES (?, ?, ?, ?, ?, ?)
+";
+
 $stmt = $pdo->prepare($sql);
+
 $stmt->execute([
     $_SESSION["id"],
     $game_id,
     $category_id,
+    $division_id,
     $content,
     $spoiler
 ]);

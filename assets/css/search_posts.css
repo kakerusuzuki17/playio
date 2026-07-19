@@ -1,0 +1,325 @@
+.search-grid{
+    display:grid;
+    grid-template-columns:2fr 1fr;
+    gap:16px;
+    align-items:start;
+}
+
+.search-field {
+    min-width: 0;
+}
+
+.search-field-wide {
+    grid-column: span 1;
+}
+
+.search-field label {
+    display: block;
+
+    margin-bottom: 6px;
+
+    color: var(--text-sub);
+
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.search-field input,
+.search-field select {
+    margin-bottom: 0;
+}
+
+.search-field-game{
+    grid-column:1;
+}
+
+.search-field-category{
+    grid-column:2;
+}
+
+#divisionSearchArea{
+    grid-column:1;
+}
+
+.search-field-post{
+    grid-column:1;
+}
+
+.search-field-tag{
+    grid-column:2;
+}
+
+.search-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    gap: 15px;
+
+    margin-top: 16px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--border);
+}
+
+.spoiler-option {
+    display: inline-flex;
+    align-items: center;
+
+    gap: 8px;
+
+    color: var(--text-sub);
+
+    cursor: pointer;
+}
+
+.spoiler-option input {
+    width: auto;
+
+    margin: 0;
+
+    accent-color: var(--accent);
+}
+
+.search-footer-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 10px;
+}
+
+.search-submit-button {
+    width: auto;
+
+    min-width: 90px;
+}
+
+.reset-search-button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+
+    padding: 9px 12px;
+
+    color: var(--text-sub);
+
+    border: 1px solid var(--border);
+    border-radius: 5px;
+}
+
+.reset-search-button:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+/* 選択済みゲームを小さく表示 */
+
+#selectedGame {
+    margin-top: 8px;
+    margin-bottom: 0;
+
+    padding: 8px 10px;
+}
+
+#selectedGame img {
+    width: 45px;
+    height: 60px;
+
+    object-fit: cover;
+}
+
+.selected-game-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 4px;
+}
+
+.selected-game-info small {
+    color: var(--text-muted);
+}
+
+.post-box {
+    flex-shrink: 0;
+
+    background: var(--bg-card);
+
+    padding: 20px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.post-box textarea {
+    width: 100%;
+
+    resize: vertical;
+
+    margin-bottom: 10px;
+}
+
+.post-box button {
+    width: auto;
+}
+
+/* ===========================
+   検索パネル
+=========================== */
+
+.search-panel {
+    margin: 16px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    overflow: visible;
+}
+
+.search-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 14px 16px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.search-panel-header h3 {
+    font-size: 16px;
+}
+
+.search-toggle-button {
+    width: auto;
+
+    padding: 6px 10px;
+
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.search-toggle-button:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+.game-result-cover {
+    width: 55px !important;
+    height: 75px !important;
+}
+
+/* ===========================
+   ゲーム検索候補一覧
+=========================== */
+
+/* 共通のbuttonスタイルを上書きする */
+
+#gameResults {
+    position: absolute;
+    z-index: 1000;
+
+    display: none;
+
+    width: 100%;
+    max-height: 350px;
+    overflow-y: auto;
+
+    background: #24262b;
+    border: 1px solid #444;
+    border-radius: 0 0 8px 8px;
+}
+
+#gameResults:empty {
+    display: none !important;
+    border: none !important;
+}
+
+#gameResults .game-result-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    width: 100%;
+    min-height: 90px;
+    padding: 8px 12px;
+
+    color: white;
+    text-align: left;
+
+    background: #24262b;
+    border: none;
+    border-bottom: 1px solid #444;
+    border-radius: 0;
+
+    font-weight: normal;
+    cursor: pointer;
+}
+
+/* 最後の候補だけ下線を消す */
+#gameResults .game-result-item:last-child {
+    border-bottom: none;
+}
+
+/* ホバー時 */
+#gameResults .game-result-item:hover {
+    background: #34373d;
+}
+
+/* カバー画像 */
+#gameResults .game-result-cover {
+    flex-shrink: 0;
+
+    width: 55px !important;
+    height: 75px !important;
+
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* 画像なし */
+#gameResults .game-result-no-cover {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+
+    width: 55px;
+    height: 75px;
+
+    color: #aaa;
+    font-size: 11px;
+
+    background: #3a3d43;
+    border-radius: 4px;
+}
+
+/* 名前・ジャンル部分 */
+#gameResults .game-result-info {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 5px;
+
+    min-width: 0;
+}
+
+/* ゲーム名 */
+#gameResults .game-result-info strong {
+    display: block;
+
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+/* ジャンル */
+#gameResults .game-result-info small {
+    display: block;
+
+    color: #aaa;
+    font-size: 12px;
+    font-weight: normal;
+    line-height: 1.4;
+}

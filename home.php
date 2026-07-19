@@ -12,6 +12,28 @@ if (!isset($_SESSION["id"])) {
 
 require "config/db.php";
 $currentId = $_SESSION["id"];
+$currentAccountId = $_SESSION["account_id"];
+
+/*
+|--------------------------------------------------------------------------
+| 検索条件
+|--------------------------------------------------------------------------
+*/
+
+$gameId = "";
+$igdbId = "";
+
+$gameName = "";
+$gameCover = "";
+$gameGenres = "";
+
+$categoryId = "";
+$divisionId = "";
+
+$keyword = "";
+$tagsText = "";
+
+$spoiler = false;
 
 // 並び替え条件
 $sort = $_GET["sort"] ?? "new";
@@ -36,7 +58,7 @@ switch ($sort) {
             posts.created_at DESC
         ";
         break;
-        
+
     case "random":
         $orderBy = "RAND()";
         break;
@@ -53,11 +75,17 @@ $sql = "SELECT
             posts.id,
             posts.content,
             posts.created_at,
+            posts.game_id AS game_id,
+            games.igdb_id AS igdb_id,
             games.name AS game_name,
             games.cover AS game_cover,
             games.genres AS game_genres,
             games.release_date AS game_released,
-            users.account_id,
+            categories.id AS category_id,
+            divisions.id AS division_id,
+            divisions.name AS division_name,
+            users.id AS user_id,
+            users.account_id AS account_id,
             users.user_name,
             (
                 SELECT COUNT(*)
@@ -72,18 +100,74 @@ $sql = "SELECT
             ) AS liked_by_me,
             highscore.score AS score,
             cleartime.time_ms AS time_ms,
+            categories.id AS category_id,
+            score_ranking.score_rank AS score_rank,
+            time_ranking.time_rank AS time_rank,
             categories.name AS category_name
         FROM posts
         JOIN users
             ON posts.user_id = users.id
         LEFT JOIN games
             ON posts.game_id = games.id
+        LEFT JOIN divisions
+            ON posts.division_id = divisions.id
         LEFT JOIN highscore
             ON posts.id = highscore.post_id
         LEFT JOIN cleartime
             ON posts.id = cleartime.post_id
             LEFT JOIN categories
             ON posts.category_id = categories.id
+            LEFT JOIN (
+                SELECT
+                    ranked_scores.post_id,
+                    DENSE_RANK() OVER (
+                        PARTITION BY
+                            ranked_scores.game_id,
+                            ranked_scores.category_id,
+                            COALESCE(ranked_scores.division_id, 0)
+                        ORDER BY
+                            ranked_scores.score DESC
+                    ) AS score_rank
+                FROM (
+                    SELECT
+                        posts.id AS post_id,
+                        posts.game_id,
+                        posts.category_id,
+                        posts.division_id,
+                        highscore.score
+                    FROM posts
+                    JOIN highscore
+                        ON posts.id = highscore.post_id
+                    WHERE highscore.score IS NOT NULL
+                ) AS ranked_scores
+            ) AS score_ranking
+                ON posts.id = score_ranking.post_id
+
+            LEFT JOIN (
+                SELECT
+                    ranked_times.post_id,
+                    DENSE_RANK() OVER (
+                        PARTITION BY
+                            ranked_times.game_id,
+                            ranked_times.category_id,
+                            COALESCE(ranked_times.division_id, 0)
+                        ORDER BY
+                            ranked_times.time_ms ASC
+                    ) AS time_rank
+                FROM (
+                    SELECT
+                        posts.id AS post_id,
+                        posts.game_id,
+                        posts.category_id,
+                        posts.division_id,
+                        cleartime.time_ms
+                    FROM posts
+                    JOIN cleartime
+                        ON posts.id = cleartime.post_id
+                    WHERE cleartime.time_ms IS NOT NULL
+                ) AS ranked_times
+            ) AS time_ranking
+                ON posts.id = time_ranking.post_id
         WHERE posts.spoiler = 0
         ORDER BY {$orderBy}";
 
@@ -155,19 +239,6 @@ if (!empty($posts)) {
     }
 }
 
-// カテゴリ一覧を取得
-$currentId = $_SESSION["id"];
-
-$sql = "SELECT
-            id,
-            name
-        FROM categories
-        ORDER BY id ASC";
-
-$stmt = $pdo->prepare($sql);
-$stmt->execute();
-$categories = $stmt->fetchAll();
-
 // お気に入りゲーム一覧を取得
 $sql = "SELECT
             favorite_games.game_id AS game_id,
@@ -178,7 +249,7 @@ $sql = "SELECT
         LEFT JOIN games
             ON favorite_games.game_id = games.id
         WHERE user_id = ?
-        ORDER BY favorite_games.created_at DESC";
+        ORDER BY game_name ASC";
 
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$currentId]);
@@ -212,562 +283,378 @@ function formatTimeMs($timeMs)
 <html lang="ja">
 
     <head>
+        <link rel="icon" type="image/png" href="assets/images/favicon.png">
         <meta charset="UTF-8">
         <title>ホーム</title>
-        <link rel="stylesheet" href="assets/css/style.css">
+        <link rel="stylesheet" href="assets/css/common.css">
+        <link rel="stylesheet" href="assets/css/layout.css">
+        <link rel="stylesheet" href="assets/css/components.css">
+        <link rel="stylesheet" href="assets/css/home.css">
+        <link rel="stylesheet" href="assets/css/search_posts.css">
     </head>
 
     <body>
 
-    <div class="container">
+        <div class="container">
 
-        <!-- 左メニュー -->
-        <aside class="sidebar">
+            <!-- 左メニュー -->
+            <?php require __DIR__ . "/includes/sidebar.php"; ?>
 
-            <h2><a href="home.php" class="post-link">Playio</a></h2>
+            <!-- メイン -->
+            <main class="main">
 
-            <ul>
-                <li><a href="home.php">🏠 ホーム</a></li>
-                <li><a href="profile.php">👤 プロフィール</a></li>
-                <li><a href="new_post.php" class="post-link">投稿する</a></li>
-                <?php foreach ($favoriteGames as $favoriteGame): ?>
-                    <li><a href="search_posts.php?igdb_id=<?= $favoriteGame["igdb_id"] ?>&game_name=<?= $favoriteGame["game_name"] ?>&game_cover=<?= $favoriteGame["game_cover"] ?>">
-                    <?= $favoriteGame["game_name"] ?></a></li>
-                <?php endforeach ?>
-            </ul>
+                <div class="post-box">
+                    <?php
+                    require __DIR__ . "/includes/search_form.php";
+                    ?>
 
-            <div class="account-info">
-                <div class="account-icon">
-                    <?= htmlspecialchars(mb_substr($_SESSION["user_name"], 0, 1)) ?>
-                </div>
+                    <!-- タイムライン -->
+                    <div class="timeline-toolbar">
 
-                <div>
-                    <strong>
-                        <?= htmlspecialchars($_SESSION["user_name"]) ?>
-                    </strong>
-                    <p>
-                        @<?= htmlspecialchars($_SESSION["account_id"]) ?>
-                    </p>
-                    <a href="auth/logout.php">ログアウト</a>
-                </div>
-            </div>
-        </aside>
+                        <h3>投稿一覧</h3>
 
-        <!-- メイン -->
-        <main class="main">
+                        <form action="" method="get" class="sort-form">
 
-            <div class="post-box">
-                <div class="search-panel">
-
-                    <form action="search_posts.php" method="get">
-
-                        <div class="search-panel-header">
-                            <h3>投稿を検索</h3>
-
-                            <button
-                                type="button"
-                                id="toggleSearchButton"
-                                class="search-toggle-button"
+                            <!-- 検索条件を維持 -->
+                            <input
+                                type="hidden"
+                                name="igdb_id"
+                                value="<?= htmlspecialchars($igdbId ?? "") ?>"
                             >
-                                条件を閉じる
-                            </button>
-                        </div>
 
-                        <div id="searchConditions">
+                            <input
+                                type="hidden"
+                                name="category_id"
+                                value="<?= htmlspecialchars($categoryId ?? "") ?>"
+                            >
 
-                            <div class="search-grid">
+                            <input
+                                type="hidden"
+                                name="keyword"
+                                value="<?= htmlspecialchars($keyword ?? "") ?>"
+                            >
 
-                                <!-- ゲーム検索 -->
-                                <div class="search-field search-field-wide">
-                                    <label for="gameSearch">ゲーム</label>
+                            <input
+                                type="hidden"
+                                name="tags"
+                                value="<?= htmlspecialchars($tagsText ?? "") ?>"
+                            >
 
-                                    <input
-                                        type="text"
-                                        id="gameSearch"
-                                        placeholder="ゲーム名を検索"
-                                        value="<?= htmlspecialchars(
-                                            $gameName ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
+                            <input
+                                type="hidden"
+                                name="game_name"
+                                value="<?= htmlspecialchars(
+                                    $gameName ?? "",
+                                    ENT_QUOTES,
+                                    "UTF-8"
+                                ) ?>"
+                            >
 
-                                    <div id="gameResults"></div>
+                            <input
+                                type="hidden"
+                                name="game_cover"
+                                value="<?= htmlspecialchars(
+                                    $gameCover ?? "",
+                                    ENT_QUOTES,
+                                    "UTF-8"
+                                ) ?>"
+                            >
 
-                                    <?php
-                                    $hasSelectedGame =
-                                        !empty($igdbId);
-                                    ?>
+                            <input
+                                type="hidden"
+                                name="game_genres"
+                                value="<?= htmlspecialchars(
+                                    $gameGenres ?? "",
+                                    ENT_QUOTES,
+                                    "UTF-8"
+                                ) ?>"
+                            >
 
-                                    <div
-                                        id="selectedGame"
-                                        style="<?= $hasSelectedGame
-                                            ? "display:flex;"
-                                            : "display:none;"
-                                        ?>"
-                                    >
-                                        <img
-                                            id="selectedGameCover"
-                                            src="<?= htmlspecialchars(
-                                                $gameCover ?? "",
-                                                ENT_QUOTES,
-                                                "UTF-8"
-                                            ) ?>"
-                                            alt="ゲーム画像"
-                                        >
+                            <?php if (!empty($spoiler)): ?>
+                                <input type="hidden" name="spoiler" value="1">
+                            <?php endif; ?>
 
-                                        <div class="selected-game-info">
-                                            <strong id="selectedGameName">
-                                                <?= htmlspecialchars(
-                                                    $gameName ?? "",
-                                                    ENT_QUOTES,
-                                                    "UTF-8"
-                                                ) ?>
+                            <select
+                                name="sort"
+                                onchange="this.form.submit()"
+                            >
+                                <option
+                                    value="new"
+                                    <?= $sort === "new" ? "selected" : "" ?>
+                                >
+                                    新着順
+                                </option>
+
+                                <option
+                                    value="likes"
+                                    <?= $sort === "likes" ? "selected" : "" ?>
+                                >
+                                    いいね順
+                                </option>
+
+                                <option
+                                    value="score"
+                                    <?= $sort === "score" ? "selected" : "" ?>
+                                >
+                                    ハイスコア順
+                                </option>
+
+                                <option
+                                    value="time"
+                                    <?= $sort === "time" ? "selected" : "" ?>
+                                >
+                                    タイム順
+                                </option>
+
+                                <option
+                                    value="random"
+                                    <?= $sort === "random" ? "selected" : "" ?>
+                                >
+                                    ランダム
+                                </option>
+                            </select>
+
+                        </form>
+
+                    </div>
+                    <div class="timeline">
+                        <?php foreach ($posts as $post): ?>
+
+                            <div class="post">
+
+                                <div class="post-header">
+
+                                    <a href="profile.php?account_id=<?= $post["account_id"] ?>">
+                                        <div class="post-user-icon">
+                                            <?= htmlspecialchars(
+                                                mb_substr($post["user_name"], 0, 1)
+                                            ) ?>
+                                        </div>
+                                    </a>
+                                    <div class="post-user-info">
+
+                                    <a href="profile.php?account_id=<?= $post["account_id"] ?>">
+                                        <div class="post-user-line">
+                                            <strong>
+                                                <?= htmlspecialchars($post["user_name"]) ?>
                                             </strong>
 
-                                            <small id="selectedGameGenres">
-                                                <?= htmlspecialchars(
-                                                    $gameGenres ?? "",
-                                                    ENT_QUOTES,
-                                                    "UTF-8"
-                                                ) ?>
-                                            </small>
+                                            <span>
+                                                @<?= htmlspecialchars($post["account_id"]) ?>
+                                            </span>
                                         </div>
 
-                                        <button
-                                            type="button"
-                                            id="clearGameButton"
-                                            class="clear-game-button"
-                                        >
-                                            ×
-                                        </button>
-                                    </div>
+                                        <small>
+                                            <?= htmlspecialchars($post["created_at"]) ?>
+                                        </small>
 
-                                    <input
-                                        type="hidden"
-                                        name="igdb_id"
-                                        id="igdbId"
-                                        value="<?= htmlspecialchars(
-                                            $igdbId ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="game_name"
-                                        id="gameName"
-                                        value="<?= htmlspecialchars(
-                                            $gameName ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="game_cover"
-                                        id="gameCover"
-                                        value="<?= htmlspecialchars(
-                                            $gameCover ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-
-                                    <input
-                                        type="hidden"
-                                        name="game_genres"
-                                        id="gameGenres"
-                                        value="<?= htmlspecialchars(
-                                            $gameGenres ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-                                </div>
-
-                                <!-- カテゴリ -->
-                                <div class="search-field">
-                                    <label for="categorySelect">カテゴリ</label>
-
-                                    <select
-                                        name="category_id"
-                                        id="categorySelect"
-                                    >
-                                        <option value="">
-                                            すべてのカテゴリ
-                                        </option>
-
-                                        <?php foreach ($categories as $category): ?>
-                                            <option
-                                                value="<?= (int)$category["id"] ?>"
-                                                <?= ($categoryId ?? "") == $category["id"]
-                                                    ? "selected"
-                                                    : ""
-                                                ?>
-                                            >
-                                                <?= htmlspecialchars($category["name"]) ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
-                                <!-- 投稿文 -->
-                                <div class="search-field">
-                                    <label for="keyword">投稿文</label>
-
-                                    <input
-                                        type="text"
-                                        name="keyword"
-                                        id="keyword"
-                                        placeholder="投稿内容を検索"
-                                        value="<?= htmlspecialchars(
-                                            $keyword ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-                                </div>
-
-                                <!-- タグ -->
-                                <div class="search-field search-field-wide">
-                                    <label for="tagSearch">タグ</label>
-
-                                    <input
-                                        type="text"
-                                        id="tagSearch"
-                                        placeholder="タグを検索"
-                                    >
-
-                                    <div id="tagResults"></div>
-                                    <div id="selectedTags"></div>
-
-                                    <input
-                                        type="hidden"
-                                        name="tags"
-                                        id="tagsInput"
-                                        value="<?= htmlspecialchars(
-                                            $tagsText ?? "",
-                                            ENT_QUOTES,
-                                            "UTF-8"
-                                        ) ?>"
-                                    >
-                                </div>
-                            </div>
-
-                            <div class="search-footer">
-
-                                <label class="spoiler-option">
-                                    <input
-                                        type="checkbox"
-                                        name="spoiler"
-                                        value="1"
-                                        <?= !empty($spoiler)
-                                            ? "checked"
-                                            : ""
-                                        ?>
-                                    >
-                                    <span>ネタバレを含める</span>
-                                </label>
-
-                                <div class="search-footer-actions">
-
-                                    <a
-                                        href="home.php"
-                                        class="reset-search-button"
-                                    >
-                                        リセット
+                                        </div>
                                     </a>
 
-                                    <button
-                                        type="submit"
-                                        class="search-submit-button"
-                                    >
-                                        🔍 検索
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- タイムライン -->
-                <div class="timeline-toolbar">
-
-                <h3>投稿一覧</h3>
-
-                <form action="" method="get" class="sort-form">
-
-                    <!-- 検索条件を維持 -->
-                    <input
-                        type="hidden"
-                        name="igdb_id"
-                        value="<?= htmlspecialchars($igdbId ?? "") ?>"
-                    >
-
-                    <input
-                        type="hidden"
-                        name="category_id"
-                        value="<?= htmlspecialchars($categoryId ?? "") ?>"
-                    >
-
-                    <input
-                        type="hidden"
-                        name="keyword"
-                        value="<?= htmlspecialchars($keyword ?? "") ?>"
-                    >
-
-                    <input
-                        type="hidden"
-                        name="tags"
-                        value="<?= htmlspecialchars($tagsText ?? "") ?>"
-                    >
-
-                    <?php if (!empty($spoiler)): ?>
-                        <input type="hidden" name="spoiler" value="1">
-                    <?php endif; ?>
-
-                    <select
-                        name="sort"
-                        onchange="this.form.submit()"
-                    >
-                        <option
-                            value="new"
-                            <?= $sort === "new" ? "selected" : "" ?>
-                        >
-                            新着順
-                        </option>
-
-                        <option
-                            value="likes"
-                            <?= $sort === "likes" ? "selected" : "" ?>
-                        >
-                            いいね順
-                        </option>
-
-                        <option
-                            value="score"
-                            <?= $sort === "score" ? "selected" : "" ?>
-                        >
-                            ハイスコア順
-                        </option>
-
-                        <option
-                            value="time"
-                            <?= $sort === "time" ? "selected" : "" ?>
-                        >
-                            タイム順
-                        </option>
-
-                        <option
-                            value="random"
-                            <?= $sort === "random" ? "selected" : "" ?>
-                        >
-                            ランダム
-                        </option>
-                    </select>
-
-                </form>
-
-            </div>
-            <div class="timeline">
-                <?php foreach ($posts as $post): ?>
-
-                    <div class="post">
-
-                        <div class="post-header">
-
-                            <div class="post-user-icon">
-                                <?= htmlspecialchars(
-                                    mb_substr($post["user_name"], 0, 1)
-                                ) ?>
-                            </div>
-
-                            <div class="post-user-info">
-
-                                <div class="post-user-line">
-                                    <strong>
-                                        <?= htmlspecialchars($post["user_name"]) ?>
-                                    </strong>
-
-                                    <span>
-                                        @<?= htmlspecialchars($post["account_id"]) ?>
-                                    </span>
                                 </div>
 
-                                <small>
-                                    <?= htmlspecialchars($post["created_at"]) ?>
-                                </small>
+                                <?php
+                                    $mediaList = $postMedia[$post["id"]] ?? [];
+                                ?>
 
-                            </div>
+                                <?php if (!empty($mediaList)): ?>
+                                    <div class="post-media-grid media-count-<?= count($mediaList) ?>">
 
-                        </div>
+                                        <?php foreach ($mediaList as $media): ?>
+                                            <?php
+                                                $fileUrl =
+                                                    "uploads/" .
+                                                    rawurlencode($media["file_name"]);
+                                            ?>
 
-                        <?php
-                        $mediaList = $postMedia[$post["id"]] ?? [];
-                        ?>
+                                            <?php if ($media["file_type"] === "image"): ?>
 
-                        <?php if (!empty($mediaList)): ?>
-                            <div class="post-media-grid media-count-<?= count($mediaList) ?>">
+                                                <img
+                                                    src="<?= htmlspecialchars($fileUrl) ?>"
+                                                    alt="投稿画像"
+                                                    class="post-media-item zoom-image"
+                                                >
 
-                                <?php foreach ($mediaList as $media): ?>
-                                    <?php
-                                    $fileUrl =
-                                        "uploads/" .
-                                        rawurlencode($media["file_name"]);
-                                    ?>
+                                            <?php elseif ($media["file_type"] === "video"): ?>
 
-                                    <?php if ($media["file_type"] === "image"): ?>
+                                                <video
+                                                    class="post-media-item"
+                                                    controls
+                                                    preload="metadata"
+                                                >
+                                                    <source
+                                                        src="<?= htmlspecialchars($fileUrl) ?>"
+                                                    >
+                                                </video>
 
-                                        <img
-                                            src="<?= htmlspecialchars($fileUrl) ?>"
-                                            alt="投稿画像"
-                                            class="post-media-item"
-                                        >
+                                            <?php endif; ?>
 
-                                    <?php elseif ($media["file_type"] === "video"): ?>
+                                        <?php endforeach; ?>
 
-                                        <video
-                                            class="post-media-item"
-                                            controls
-                                            preload="metadata"
-                                        >
-                                            <source
-                                                src="<?= htmlspecialchars($fileUrl) ?>"
-                                            >
-                                        </video>
+                                    </div>
+                                <?php endif; ?>
 
+                                <div class="post-records">
+
+                                    <?php if ($post["score"] !== null): ?>
+                                        <span class="ranking-badge">
+                                            <?= htmlspecialchars($post["score_rank"]) ?>位
+                                        </span>
+
+                                        <span class="high-score">
+                                            🏆 <?= htmlspecialchars($post["score"]) ?>
+                                        </span>
                                     <?php endif; ?>
 
-                                <?php endforeach; ?>
+                                    <?php if ($post["time_ms"] !== null): ?>
+                                        <span class="ranking-badge">
+                                            <?= htmlspecialchars($post["time_rank"]) ?>位
+                                        </span>
 
-                            </div>
-                        <?php endif; ?>
-
-                        <div class="post-records">
-
-                            <?php if ($post["score"] !== null): ?>
-                                <span class="high-score">
-                                    🏆 <?= htmlspecialchars($post["score"]) ?>
-                                </span>
-                            <?php endif; ?>
-
-                            <?php if ($post["time_ms"] !== null): ?>
-                                <span class="clear-time">
-                                    ⏱ <?= htmlspecialchars(
-                                        formatTimeMs($post["time_ms"])
-                                    ) ?>
-                                </span>
-                            <?php endif; ?>
-
-                        </div>
-
-                        <div class="post-content">
-                            <?= nl2br(htmlspecialchars($post["content"])) ?>
-                        </div>
-
-                        <div class="post-footer">
-
-                        <!-- 1段目 -->
-                        <div class="post-footer-info">
-
-                            <div class="post-footer-category">
-
-                            <!-- カテゴリ -->
-                            <?php if (!empty($post["category_name"])): ?>
-                                <span class="post-category">
-                                    <?= htmlspecialchars($post["category_name"]) ?>
-                                </span>
-                            <?php endif; ?>
-
-
-                            <!-- タグ -->
-                            <?php
-                            $tags = $postTags[$post["id"]] ?? [];
-                            ?>
-
-                            <?php if (!empty($tags)): ?>
-
-                                <div class="post-tags">
-
-                                    <?php foreach ($tags as $tag): ?>
-                                        <a
-                                            class="post-tag"
-                                        >
-                                            #<?= htmlspecialchars($tag["name"]) ?>
-                                        </a>
-
-                                    <?php endforeach; ?>
+                                        <span class="clear-time">
+                                            ⏱ <?= htmlspecialchars(
+                                                formatTimeMs($post["time_ms"])
+                                            ) ?>
+                                        </span>
+                                    <?php endif; ?>
 
                                 </div>
 
-                            <?php endif; ?>
+                                <div class="post-content">
+                                    <?= nl2br(htmlspecialchars($post["content"])) ?>
+                                </div>
 
+                                <div class="post-footer">
 
-                            <!-- いいね -->
-                            <div class="post-footer-actions">
+                                    <!-- 1段目 -->
+                                    <div class="post-footer-info">
 
-                                <button
-                                    type="button"
-                                    class="like-btn <?= $post["liked_by_me"] ? "liked" : "" ?>"
-                                    data-post-id="<?= $post["id"] ?>"
-                                >
-                                    <span class="heart">
-                                        <?= $post["liked_by_me"] ? "❤️" : "🤍" ?>
-                                    </span>
+                                        <div class="post-footer-category">
 
-                                    <span class="like-count">
-                                        <?= $post["like_count"] ?>
-                                    </span>
-                                </button>
+                                            <div class="post-category-group">
 
-                            </div>
+                                                <?php if (!empty($post["category_name"])): ?>
+                                                    <a
+                                                        class="post-category"
+                                                        href="search_posts.php?category_id=<?= $post["category_id"] ?>"
+                                                    >
+                                                        <?= htmlspecialchars($post["category_name"]) ?>
+                                                    </a>
+                                                <?php endif; ?>
 
-                        </div>
+                                                <?php if (!empty($post["division_name"])): ?>
+                                                    <a class="post-division" href="search_posts.php?game_id=<?= $post["game_id"] ?>&igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= urlencode($post["game_name"]) ?>&game_cover=<?= urlencode($post["game_cover"]) ?>&game_genres=<?= urlencode($post["game_genres"]) ?>&category_id=<?= $post["category_id"] ?>&division_id=<?= $post["division_id"] ?>">
+                                                        <?= htmlspecialchars($post["division_name"]) ?>
+                                                    </a>
+                                                <?php endif; ?>
 
-
-                            <!-- 右：ゲーム情報 -->
-                            <?php if (!empty($post["game_name"])): ?>
-
-                                <div class="post-footer-game">
-
-                                    <!-- GAMEラベル -->
-                                    <span class="post-game-label">
-                                        GAME
-                                    </span>
-
-                                    <!-- ゲーム詳細 -->
-                                    <div class="post-footer-game-info">
-
-                                        <!-- ゲーム名 -->
-                                        <div class="post-footer-game-name">
-                                            <?= htmlspecialchars($post["game_name"]) ?>
-                                        </div>
-
-                                        <!-- ジャンル -->
-                                        <?php if (!empty($post["game_genres"])): ?>
-
-                                            <div class="post-footer-game-genres">
-                                                <?= htmlspecialchars($post["game_genres"]) ?>
                                             </div>
 
-                                        <?php endif; ?>
+                                            <!-- タグ -->
+                                            <?php
+                                            $tags = $postTags[$post["id"]] ?? [];
+                                            ?>
 
-                                        <!-- 発売日 -->
-                                        <?php if (!empty($post["game_released"])): ?>
+                                            <?php if (!empty($tags)): ?>
 
-                                            <div class="post-footer-game-release">
+                                                <div class="post-tags">
 
-                                                <?=
-                                                    htmlspecialchars(
-                                                        date(
-                                                            "Y年n月j日",
-                                                            strtotime($post["game_released"])
-                                                        )
-                                                    )
-                                                ?>
+                                                    <?php foreach ($tags as $tag): ?>
+                                                        <a
+                                                            class="post-tag" href="search_posts.php?tags=<?= $tag["name"] ?>"
+                                                        >
+                                                            #<?= htmlspecialchars($tag["name"]) ?>
+                                                        </a>
+
+                                                    <?php endforeach; ?>
+
+                                                </div>
+
+                                            <?php endif; ?>
+
+
+                                            <!-- いいね -->
+                                            <div class="post-footer-actions">
+
+                                                <button
+                                                    type="button"
+                                                    class="like-btn <?= $post["liked_by_me"] ? "liked" : "" ?>"
+                                                    data-post-id="<?= $post["id"] ?>"
+                                                >
+                                                    <span class="heart">
+                                                        <?= $post["liked_by_me"] ? "❤️" : "🤍" ?>
+                                                    </span>
+
+                                                    <span class="like-count">
+                                                        <?= $post["like_count"] ?>
+                                                    </span>
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                        <!-- 右：ゲーム情報 -->
+                                        <?php if (!empty($post["game_name"])): ?>
+
+                                            <div class="post-footer-game">
+
+                                                <!-- GAMEラベル -->
+                                                <span class="post-game-label">
+                                                    GAME
+                                                </span>
+
+                                                <!-- ゲーム詳細 -->
+                                                <div class="post-footer-game-info">
+
+                                                    <!-- ゲーム名 -->
+                                                    <div class="post-footer-game-name">
+                                                        <?= htmlspecialchars($post["game_name"]) ?>
+                                                    </div>
+
+                                                    <!-- ジャンル -->
+                                                    <?php if (!empty($post["game_genres"])): ?>
+
+                                                        <div class="post-footer-game-genres">
+                                                            <?= htmlspecialchars($post["game_genres"]) ?>
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                    <!-- 発売日 -->
+                                                    <?php if (!empty($post["game_released"])): ?>
+
+                                                        <div class="post-footer-game-release">
+
+                                                            <?=
+                                                                htmlspecialchars(
+                                                                    date(
+                                                                        "Y年n月j日",
+                                                                        strtotime($post["game_released"])
+                                                                    )
+                                                                )
+                                                            ?>
+
+                                                        </div>
+
+                                                    <?php endif; ?>
+
+                                                    <a href="game_detail.php?igdb_id=<?= $post["igdb_id"] ?>">
+                                                    ゲーム詳細
+                                                    </a>
+
+                                                </div>
+
+                                                <!-- ゲームカバー -->
+                                                <?php if (!empty($post["game_cover"])): ?>
+                                                    <a href="search_posts.php?game_id=<?= $post["game_id"] ?>&igdb_id=<?= $post["igdb_id"] ?>&game_name=<?= $post["game_name"] ?>&game_cover=<?= $post["game_cover"] ?>&game_genres=<?= $post["game_genres"] ?>">
+                                                        <img
+                                                            src="<?= htmlspecialchars($post["game_cover"]) ?>"
+                                                            alt="<?= htmlspecialchars($post["game_name"]) ?>"
+                                                            class="post-footer-game-cover"
+                                                        >
+                                                    </a>
+                                                <?php endif; ?>
 
                                             </div>
 
@@ -775,61 +662,59 @@ function formatTimeMs($timeMs)
 
                                     </div>
 
-                                    <!-- ゲームカバー -->
-                                    <?php if (!empty($post["game_cover"])): ?>
-
-                                        <img
-                                            src="<?= htmlspecialchars($post["game_cover"]) ?>"
-                                            alt="<?= htmlspecialchars($post["game_name"]) ?>"
-                                            class="post-footer-game-cover"
-                                        >
-
-                                    <?php endif; ?>
-
                                 </div>
 
-                            <?php endif; ?>
+                            </div>
 
-                        </div>
-
-                    </div>
+                        <?php endforeach; ?>
 
                     </div>
+                </div>
 
-                <?php endforeach; ?>
+            </main>
 
-            </div>
+        </div>
 
-        </main>
+        <div id="imageModal" class="image-modal">
 
-    </div>
+            <span id="closeImageModal">&times;</span>
 
-    <script src="./assets/js/like.js"></script>
-    <script src="./assets/js/share.js"></script>
-    <script src="assets/js/reply.js"></script>
-    <script src="assets/js/gameSearch.js"></script>
-    <script src="assets/js/tagFilter.js"></script>
+            <img
+                id="modalImage"
+                class="image-modal-content"
+                src=""
+                alt=""
+            >
 
-    <script>
-        const toggleSearchButton =
-            document.getElementById("toggleSearchButton");
+        </div>
 
-        const searchConditions =
-            document.getElementById("searchConditions");
+        <script src="./assets/js/like.js"></script>
+        <script src="./assets/js/share.js"></script>
+        <script src="assets/js/reply.js"></script>
+        <script src="assets/js/gameSearch.js"></script>
+        <script src="assets/js/tagFilter.js"></script>
+        <script src="assets/js/imageModal.js"></script>
 
-        if (toggleSearchButton && searchConditions) {
-            toggleSearchButton.addEventListener("click", () => {
-                const isHidden =
-                    searchConditions.style.display === "none";
+        <script>
+            const toggleSearchButton =
+                document.getElementById("toggleSearchButton");
 
-                searchConditions.style.display =
-                    isHidden ? "block" : "none";
+            const searchConditions =
+                document.getElementById("searchConditions");
 
-                toggleSearchButton.textContent =
-                    isHidden ? "条件を閉じる" : "条件を開く";
-            });
-        }
-    </script>
+            if (toggleSearchButton && searchConditions) {
+                toggleSearchButton.addEventListener("click", () => {
+                    const isHidden =
+                        searchConditions.style.display === "none";
+
+                    searchConditions.style.display =
+                        isHidden ? "block" : "none";
+
+                    toggleSearchButton.textContent =
+                        isHidden ? "条件を閉じる" : "条件を開く";
+                });
+            }
+        </script>
 
     </body>
 </html>

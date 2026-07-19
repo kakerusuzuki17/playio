@@ -14,6 +14,7 @@ unset($_SESSION["error"]);
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
     <title>お気に入りゲーム追加</title>
     <link rel="stylesheet" href="assets/css/style.css">
 </head>
@@ -21,15 +22,8 @@ unset($_SESSION["error"]);
 
 <div class="container">
 
-    <aside class="sidebar">
-        <h2><a href="home.php" class="post-link">Playio</a></h2>
-
-        <ul>
-            <li><a href="home.php">🏠 ホーム</a></li>
-            <li><a href="profile.php">👤 プロフィール</a></li>
-            <li><a href="new_post.php">投稿する</a></li>
-        </ul>
-    </aside>
+    <!-- 左メニュー -->
+    <?php require __DIR__ . "/includes/sidebar.php"; ?>
 
     <main class="main">
 

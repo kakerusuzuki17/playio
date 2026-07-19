@@ -9,6 +9,7 @@ if (!isset($_SESSION["id"])) {
 require "config/db.php";
 
 $userId = $_SESSION["id"];
+$profileAccountId = $_GET["account_id"];
 
 // ユーザー情報
 $sql = "SELECT
@@ -21,7 +22,26 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
 $user = $stmt->fetch();
 
-// お気に入りゲーム一覧
+// ユーザー情報(プロフィール用)
+$stmt = $pdo->prepare("
+    SELECT *
+    FROM users
+    WHERE account_id = ?
+");
+
+$stmt->execute([$profileAccountId]);
+
+$profileUser = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$profileUser) {
+    http_response_code(404);
+    exit("ユーザーが見つかりません");
+}
+
+$profileUserId = $profileUser["id"];
+$profileUserName = $profileUser["user_name"];
+
+// お気に入りゲーム一覧 (左メニュー)
 $sql = "SELECT
         games.id AS game_id,
         games.igdb_id AS igdb_id,
@@ -32,10 +52,26 @@ $sql = "SELECT
     JOIN games
         ON favorite_games.game_id = games.id
     WHERE favorite_games.user_id = ?
-    ORDER BY favorite_games.created_at DESC";
+    ORDER BY game_name ASC";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$userId]);
 $favoriteGames = $stmt->fetchAll();
+
+// お気に入りゲーム一覧 (プロフィール)
+$sql = "SELECT
+        games.id AS game_id,
+        games.igdb_id AS igdb_id,
+        games.name AS game_name,
+        games.cover AS game_cover,
+        games.genres AS game_genres
+    FROM favorite_games
+    JOIN games
+        ON favorite_games.game_id = games.id
+    WHERE favorite_games.user_id = ?
+    ORDER BY game_name ASC";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$profileUserId]);
+$profileFavoriteGames = $stmt->fetchAll();
 
 // 並び替え条件
 $sort = $_GET["sort"] ?? "new";
@@ -68,11 +104,12 @@ switch ($sort) {
         break;
 }
 
-// 自分の投稿一覧
+// 投稿一覧
 $sql = "SELECT
             posts.id,
             posts.content,
             posts.created_at,
+            games.igdb_id AS igdb_id,
             games.name AS game_name,
             games.cover AS game_cover,
             games.genres AS game_genres,
@@ -108,7 +145,7 @@ $sql = "SELECT
         ORDER BY {$orderBy}";
 
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$userId, $userId]);
+$stmt->execute([$profileUserId, $profileUserId]);
 $posts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // タグ取得
@@ -197,90 +234,175 @@ function formatTimeMs($timeMs)
         $centiseconds
     );
 }
+
+$genreCounts = [];
+
+foreach ($favoriteGames as $game) {
+    $genresText = trim($game["game_genres"] ?? "");
+
+    if ($genresText === "") {
+        continue;
+    }
+
+    // 「RPG, Adventure」のような文字列を分割
+    $genres = preg_split(
+        '/\s*,\s*/',
+        $genresText,
+        -1,
+        PREG_SPLIT_NO_EMPTY
+    );
+
+    foreach ($genres as $genre) {
+        if (!isset($genreCounts[$genre])) {
+            $genreCounts[$genre] = 0;
+        }
+
+        $genreCounts[$genre]++;
+    }
+}
+
+arsort($genreCounts);
+
+$topGenre = !empty($genreCounts)
+    ? array_key_first($genreCounts)
+    : "未設定";
+
+$favoriteGameCount = count($favoriteGames);
 ?>
 
 <!DOCTYPE html>
 <html lang="ja">
 <head>
+    <link rel="icon" type="image/png" href="assets/images/favicon.png">
     <meta charset="UTF-8">
     <title>プロフィール</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/layout.css">
+    <link rel="stylesheet" href="assets/css/components.css">
+    <link rel="stylesheet" href="assets/css/home.css">
+    <link rel="stylesheet" href="assets/css/profile.css">
 </head>
 <body>
 
     <div class="container">
 
-        <aside class="sidebar">
-            <h2><a href="home.php" class="post-link">Playio</a></h2>
-
-            <ul>
-                <li><a href="home.php">🏠 ホーム</a></li>
-                <li><a href="profile.php">👤 プロフィール</a></li>
-                <li><a href="new_post.php" class="post-link">投稿する</a></li>
-                <?php foreach ($favoriteGames as $favoriteGame): ?>
-                    <li><a href="search_posts.php?igdb_id=<?= $favoriteGame["igdb_id"] ?>&game_name=<?= $favoriteGame["game_name"] ?>&game_cover=<?= $favoriteGame["game_cover"] ?>">
-                    <?= $favoriteGame["game_name"] ?></a></li>
-                <?php endforeach ?>
-            </ul>
-
-            <div class="account-info">
-                <div class="account-icon">
-                    <?= htmlspecialchars(mb_substr($user["user_name"], 0, 1)) ?>
-                </div>
-
-                <div>
-                    <strong>
-                        <?= htmlspecialchars($_SESSION["user_name"]) ?>
-                    </strong>
-                    <p>
-                        @<?= htmlspecialchars($_SESSION["account_id"]) ?>
-                    </p>
-                    <a href="auth/logout.php">ログアウト</a>
-                </div>
-            </div>
-        </aside>
+        <?php require __DIR__ . "/includes/sidebar.php"; ?>
 
         <main class="main">
-            <section class="favorite-games-section">
-                <h3>お気に入りゲーム <a href="edit_profile.php">＋ お気に入りゲームを追加</a></h3>
+            <section class="profile-favorite-games-section">
+                <h3><?= $profileUserName ?>のお気に入りゲーム
+                    <?php if ($userId == $profileUserId) :?>
+                        <a href="edit_profile.php">＋ お気に入りゲームを追加</a></h3>
 
+                        <div class="favorite-share-actions">
+
+                            <button
+                                type="button"
+                                id="exportFavoriteGamesButton"
+                                class="favorite-export-button"
+                            >
+                                お気に入りを画像にする
+                            </button>
+
+                            <?php
+                                $profileUrl =
+                                    "http://localhost/playio/profile.php?account_id=" .
+                                    urlencode($profileUser["account_id"]);
+                                ?>
+
+                                <button
+                                    type="button"
+                                    id="shareFavoriteGamesButton"
+                                    class="favorite-share-button"
+                                    data-profile-url="<?= htmlspecialchars(
+                                        $profileUrl,
+                                        ENT_QUOTES,
+                                        "UTF-8"
+                                    ) ?>"
+                                    disabled
+                                >
+                                    Xで共有する
+                                </button>
+
+                        </div>
+                    <?php endif ?>
                 <div class="favorite-games">
-                    <?php if (empty($favoriteGames)): ?>
+                    <?php if (empty($profileFavoriteGames)): ?>
                         <p>まだお気に入りゲームが登録されていません。</p>
                     <?php endif; ?>
 
-                    <?php foreach ($favoriteGames as $game): ?>
+                    <?php foreach ($profileFavoriteGames as $game): ?>
                         <div class="favorite-game-card">
-                            <?php if (!empty($game["game_cover"])): ?>
-                                <img
-                                    src="<?= htmlspecialchars($game["game_cover"]) ?>"
-                                    alt="<?= htmlspecialchars($game["game_name"]) ?>"
-                                    width="90"
-                                >
-                            <?php endif; ?>
+                            <a href="game_detail.php?igdb_id=<?= $game["igdb_id"] ?>">
+                                <?php if (!empty($game["game_cover"])): ?>
+                                    <div class="game-cartridge">
 
-                            <strong><?= htmlspecialchars($game["game_name"]) ?></strong>
+                                        <div class="game-cartridge-top">
+                                            <span class="game-cartridge-line"></span>
+                                            <span class="game-cartridge-line"></span>
+                                            <span class="game-cartridge-line"></span>
+                                        </div>
 
-                            <form action="delete_favorite_games.php" method="post">
-                                <button
-                                    type="submit"
-                                    id="deleteButton"
-                                    class="delete-button"
-                                    data-game-id="<?= $game["game_id"] ?>"
-                                >
-                                    <span class="delete">
-                                        削除
-                                    </span>
-                                </button>
-                                <input type="hidden" name="delete_favorite_games_id" id="deleteFavoriteGamesId" value="<?= $game["game_id"] ?>" >
-                            </form>
+                                        <div class="game-cartridge-label">
+
+                                            <img
+                                                src="<?= htmlspecialchars(
+                                                    $game["game_cover"],
+                                                    ENT_QUOTES,
+                                                    "UTF-8"
+                                                ) ?>"
+                                                alt="<?= htmlspecialchars(
+                                                    $game["game_name"],
+                                                    ENT_QUOTES,
+                                                    "UTF-8"
+                                                ) ?>"
+                                                class="game-cartridge-cover"
+                                            >
+
+                                            <div class="game-cartridge-title">
+                                                <?= htmlspecialchars(
+                                                    $game["game_name"],
+                                                    ENT_QUOTES,
+                                                    "UTF-8"
+                                                ) ?>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="game-cartridge-bottom">
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                            <span></span>
+                                        </div>
+
+                                    </div>
+                                    
+                                <?php endif; ?>
+                            </a>
+                            <?php if ($userId == $profileUserId) :?>
+                                <form action="delete_favorite_games.php" method="post">
+                                    <button
+                                        type="submit"
+                                        id="deleteButton"
+                                        class="delete-button"
+                                        data-game-id="<?= $game["game_id"] ?>"
+                                    >
+                                        <span class="delete">
+                                            削除
+                                        </span>
+                                    </button>
+                                    <input type="hidden" name="delete_favorite_games_id" id="deleteFavoriteGamesId" value="<?= $game["game_id"] ?>" >
+                                </form>
+                            <?php endif ?>
                         </div>
                     <?php endforeach; ?>
                 </div>
             </section>
 
             <div class="timeline-toolbar">
-                <h3>自分の投稿</h3>
+                <h3><?= $profileUserName ?>の投稿一覧</h3>
                 <form action="profile.php" method="get" class="sort-form">
                     <select
                         name="sort"
@@ -314,6 +436,16 @@ function formatTimeMs($timeMs)
                             タイム順
                         </option>
                     </select>
+
+                    <input
+                        type="hidden"
+                        name="account_id"
+                        value="<?= htmlspecialchars(
+                            $profileAccountId,
+                            ENT_QUOTES,
+                            "UTF-8"
+                        ) ?>"
+                    >
                 </form>
             </div>
 
@@ -367,7 +499,7 @@ function formatTimeMs($timeMs)
                                             <img
                                                 src="<?= htmlspecialchars($fileUrl) ?>"
                                                 alt="投稿画像"
-                                                class="post-media-item"
+                                                class="post-media-item zoom-image"
                                             >
 
                                         <?php elseif ($media["file_type"] === "video"): ?>
@@ -458,26 +590,28 @@ function formatTimeMs($timeMs)
                                                 </span>
                                             </button>
 
-                                            <form
-                                                action="delete_posts.php"
-                                                method="post"
-                                            >
-                                                <button
-                                                    type="submit"
-                                                    class="delete-button"
-                                                    data-post-id="<?= $post["id"] ?>"
+                                            <?php if ($userId == $profileUserId) :?>
+                                                <form
+                                                    action="delete_posts.php"
+                                                    method="post"
                                                 >
-                                                    <span class="delete">
-                                                        削除
-                                                    </span>
-                                                </button>
+                                                    <button
+                                                        type="submit"
+                                                        class="delete-button"
+                                                        data-post-id="<?= $post["id"] ?>"
+                                                    >
+                                                        <span class="delete">
+                                                            削除
+                                                        </span>
+                                                    </button>
 
-                                                <input
-                                                    type="hidden"
-                                                    name="delete_post_id"
-                                                    value="<?= $post["id"] ?>"
-                                                >
-                                            </form>
+                                                    <input
+                                                        type="hidden"
+                                                        name="delete_post_id"
+                                                        value="<?= $post["id"] ?>"
+                                                    >
+                                                </form>
+                                            <?php endif ?>
                                         </div>
                                     </div>
 
@@ -523,6 +657,10 @@ function formatTimeMs($timeMs)
 
                                                 <?php endif; ?>
 
+                                                <a href="game_detail.php?igdb_id=<?= $post["igdb_id"] ?>">
+                                                    ゲーム詳細
+                                                </a>
+
                                             </div>
 
                                             <?php if (!empty($post["game_cover"])): ?>
@@ -544,7 +682,172 @@ function formatTimeMs($timeMs)
         </main>
     </div>
 
+    <div id="imageModal" class="image-modal">
+
+        <span id="closeImageModal">&times;</span>
+
+        <img
+            id="modalImage"
+            class="image-modal-content"
+            src=""
+            alt=""
+        >
+
+    </div>
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"
+    ></script>
     <script src="./assets/js/like.js"></script>
+    <script src="./assets/js/imageModal.js"></script>
+    <script src="assets/js/favoriteShare.js"></script>
+
+    <div id="favoriteShareCaptureWrapper">
+
+        <div id="favoriteShareCapture">
+
+            <!-- 上部 -->
+            <div class="share-image-header">
+
+                <div class="share-brand">
+
+                    <div class="share-logo-text">
+                        Playio
+                    </div>
+                </div>
+
+                <div class="share-user">
+
+                    <div class="share-user-info">
+
+                        <strong>
+                            <?= htmlspecialchars($profileUser["user_name"]) ?>
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <div class="share-stats">
+
+                    <div class="share-stat">
+
+                        <span class="share-stat-label">
+                            お気に入りゲーム数
+                        </span>
+
+                        <strong>
+                            <?= $favoriteGameCount ?>
+                            <small>本</small>
+                        </strong>
+
+                    </div>
+
+                    <div class="share-stat">
+
+                        <span class="share-stat-label">
+                            一番遊んでいるジャンル
+                        </span>
+
+                        <strong class="share-top-genre">
+                            <?= htmlspecialchars(
+                                $topGenre,
+                                ENT_QUOTES,
+                                "UTF-8"
+                            ) ?>
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- タイトル -->
+            <div class="share-main-title">
+                My Favorite Games
+            </div>
+
+            <!-- ゲーム一覧 -->
+            <div class="share-game-grid">
+
+                <?php foreach (
+                    array_slice($favoriteGames, 0, 20)
+                    as $game
+                ): ?>
+
+                    <div class="share-game-cartridge">
+
+                        <div class="share-cartridge-slots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+
+                        <div class="share-game-label">
+
+                            <div class="share-game-cover">
+                                <img
+                                    src="<?= htmlspecialchars(
+                                        $game["game_cover"],
+                                        ENT_QUOTES,
+                                        "UTF-8"
+                                    ) ?>"
+                                    alt=""
+                                    crossorigin="anonymous"
+                                >
+                            </div>
+
+                            <div class="share-game-name">
+                                <?= htmlspecialchars(
+                                    $game["game_name"],
+                                    ENT_QUOTES,
+                                    "UTF-8"
+                                ) ?>
+                            </div>
+
+                        </div>
+
+                        <div class="share-cartridge-terminals">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
+
+                    </div>
+
+                <?php endforeach; ?>
+
+            </div>
+
+            <!-- 下部URL -->
+            <div class="share-image-footer">
+
+                <span>
+                    ゲーム特化SNS「Playio」でいろいろなゲームの記録を見よう！残そう！
+                </span>
+
+                <strong>
+                    <?php
+                    $profileUrl =
+                        "http://localhost/playio/profile.php?account_id=" .
+                        urlencode($profileUser["account_id"]);
+                    ?>
+
+                    <?= htmlspecialchars(
+                        $profileUrl,
+                        ENT_QUOTES,
+                        "UTF-8"
+                    ) ?>
+                </strong>
+
+            </div>
+
+        </div>
+
+        </div>
 
     </body>
 </html>

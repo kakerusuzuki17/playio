@@ -1,0 +1,493 @@
+
+.timeline {
+    flex: 1;
+
+    overflow-y: auto;
+
+    padding: 20px;
+}
+
+/* ===========================
+   検索パネル
+=========================== */
+
+.search-panel {
+    margin: 16px;
+
+    background: var(--bg-card);
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    overflow: visible;
+}
+
+.search-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 14px 16px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.search-panel-header h3 {
+    font-size: 16px;
+}
+
+.search-toggle-button {
+    width: auto;
+
+    padding: 6px 10px;
+
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.search-toggle-button:hover {
+    background: var(--bg-hover);
+    color: var(--text-main);
+}
+
+#searchConditions {
+    padding: 16px;
+}
+
+.post-user-icon {
+    width: 42px;
+    height: 42px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: var(--accent);
+    color: white;
+
+    font-weight: bold;
+}
+
+.post-user-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.post-user-info strong {
+    color: var(--text-main);
+}
+
+.post-user-info span,
+.post-user-info small {
+    color: var(--text-muted);
+}
+
+.post-game {
+    display: flex;
+    align-items: center;
+
+    gap: 12px;
+
+    max-width: 450px;
+
+    margin: 12px 0;
+    padding: 8px;
+
+    background: linear-gradient(
+        90deg,
+        #1b2838,
+        #25272c
+    );
+
+    border-left: 3px solid #66c0f4;
+    border-radius: 4px;
+}
+
+.post-game-cover {
+    width: 54px;
+    height: 72px;
+
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    border-radius: 5px;
+}
+
+.post-game-cover-placeholder {
+    width: 54px;
+    height: 72px;
+
+    flex-shrink: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    background: #1e1f22;
+
+    border-radius: 5px;
+
+    font-size: 22px;
+}
+
+.post-game-details {
+    display: grid;
+
+    grid-template-columns: auto auto;
+    align-items: center;
+
+    gap: 6px 8px;
+}
+
+.post-game-label {
+    padding: 3px 6px;
+
+    background: rgba(88, 101, 242, 0.18);
+    color: #b5befe;
+
+    border: 1px solid rgba(88, 101, 242, 0.4);
+    border-radius: 4px;
+
+    font-size: 10px;
+    font-weight: bold;
+}
+
+.post-game-name {
+    color: var(--text-main);
+
+    font-size: 14px;
+}
+
+/* カテゴリ・部門・タグ・いいねをまとめる左側 */
+.post-footer-category {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+/* カテゴリと部門だけ横並び */
+.post-category-group {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+}
+
+/* カテゴリ */
+.post-category {
+    display: inline-flex;
+    align-items: center;
+
+    width: fit-content;
+    padding: 4px 10px;
+
+    background: rgba(88, 101, 242, 0.16);
+    color: #b5befe;
+
+    border: 1px solid rgba(88, 101, 242, 0.42);
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+
+    text-decoration: none;
+}
+
+/* 部門 */
+.post-division {
+    display: inline-flex;
+    align-items: center;
+
+    width: fit-content;
+    padding: 4px 10px;
+
+    background: rgba(184, 107, 24, 0.18);
+    color: #e2a45f;
+
+    border: 1px solid rgba(184, 107, 24, 0.48);
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.2;
+
+    text-decoration: none;
+}
+
+.post-records {
+    display: flex;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin: 12px 0;
+}
+
+.clear-time,
+.high-score {
+    margin: 0;
+}
+
+.post-content {
+    margin-top: 12px;
+
+    color: var(--text-main);
+
+    line-height: 1.7;
+    white-space: normal;
+}
+
+.post-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 0;
+}
+
+.post-tag {
+    display: inline-flex;
+    align-items: center;
+
+    width: fit-content;
+    padding: 4px 9px;
+
+    background: rgba(35, 165, 89, 0.14);
+    color: #57d68d;
+
+    border: 1px solid rgba(35, 165, 89, 0.4);
+    border-radius: 20px;
+
+    font-size: 12px;
+    line-height: 1;
+}
+
+.post-tag:hover {
+    background: rgba(35, 165, 89, 0.24);
+    color: #7ee2a8;
+    text-decoration: none;
+}
+
+.post-footer {
+    display: flex;
+    flex-direction: column;
+
+    margin-top: 8px;
+    padding-top: 8px;
+
+    border-top: 1px solid var(--border);
+}
+
+/* ===========================
+   写真・動画
+=========================== */
+
+.post-media-grid {
+    display: grid;
+
+    gap: 6px;
+
+    margin: 14px 0;
+
+    justify-content: start;
+
+    max-width: 100%;
+}
+
+/* 1枚 */
+
+.post-media-grid.media-count-1 {
+    grid-template-columns: minmax(0, 600px);
+}
+
+/* 2枚 */
+
+.post-media-grid.media-count-2 {
+    grid-template-columns: repeat(2, 360px);
+}
+
+/* 3枚 */
+
+.post-media-grid.media-count-3 {
+    grid-template-columns: repeat(3, 280px);
+}
+
+/* 4枚 */
+
+.post-media-grid.media-count-4 {
+    grid-template-columns: repeat(4, 240px);
+}
+
+.post-media-item {
+    display: block;
+
+    width: 100%;
+    height: 180px;
+
+    object-fit: contain;
+
+    background: #111214;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+/* 1枚だけ大きく表示 */
+
+.media-count-1 .post-media-item {
+    width: 100%;
+    height: auto;
+
+    max-width: 600px;
+    max-height: 450px;
+}
+
+/* ===========================
+   投稿一覧上部
+=========================== */
+
+.timeline-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 12px 20px;
+
+    background: var(--bg-content);
+
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+}
+
+.timeline-toolbar h3 {
+    font-size: 16px;
+}
+
+.sort-form select {
+    width: auto;
+    min-width: 150px;
+
+    margin: 0;
+}
+
+.post-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.post-game-cover {
+    width: 72px;
+    height: 96px;
+    flex-shrink: 0;
+
+    object-fit: cover;
+
+    border-radius: 7px;
+    border: 1px solid var(--border);
+
+    background: #111214;
+}
+
+.post-game-cover-placeholder {
+    width: 72px;
+    height: 96px;
+    flex-shrink: 0;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+
+    font-size: 26px;
+}
+
+.post-header-content {
+    min-width: 0;
+
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.post-user-line {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+}
+
+.post-user-line strong {
+    color: var(--text-main);
+    font-size: 15px;
+}
+
+.post-user-line span {
+    color: var(--text-muted);
+    font-size: 13px;
+}
+
+.post-game-title {
+    color: var(--text-main);
+    font-size: 17px;
+    font-weight: 700;
+}
+
+.post-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.post-category {
+    padding: 3px 8px;
+
+    background: rgba(88, 101, 242, 0.15);
+    color: #b5befe;
+
+    border: 1px solid rgba(88, 101, 242, 0.35);
+    border-radius: 20px;
+}
+
+.post-records {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+
+    gap: 8px;
+
+    margin-bottom: 12px;
+}
+
+.ranking-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 42px;
+    padding: 6px 10px;
+
+    background: rgba(88, 101, 242, 0.2);
+    color: #c4c9ff;
+
+    border: 1px solid rgba(88, 101, 242, 0.55);
+    border-radius: 20px;
+
+    font-size: 13px;
+    font-weight: bold;
+}

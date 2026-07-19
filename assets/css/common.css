@@ -1,0 +1,177 @@
+:root {
+    --bg-main: #1e1f22;
+    --bg-sidebar: #111214;
+    --bg-content: #2b2d31;
+    --bg-card: #313338;
+    --bg-input: #1e1f22;
+    --bg-hover: #3f4147;
+    --bg-account: #232428;
+
+    --text-main: #f2f3f5;
+    --text-sub: #b5bac1;
+    --text-muted: #949ba4;
+
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+
+    --border: #5a5f69;
+    --danger: #da373c;
+    --success: #23a559;
+    --gold: #f0b232;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family:
+        Inter,
+        "Segoe UI",
+        sans-serif;
+}
+
+/* ===========================
+   共通
+=========================== */
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    background: var(--bg-main);
+    color: var(--text-main);
+    overflow: hidden;
+}
+
+a {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+a:hover {
+    color: #7983f5;
+}
+
+p {
+    margin-top: 12px;
+}
+
+button {
+    padding: 10px 14px;
+    border: none;
+    border-radius: 5px;
+
+    background: var(--accent);
+    color: white;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+button:hover {
+    background: var(--accent-hover);
+}
+
+input,
+textarea,
+select {
+    width: 100%;
+
+    background: var(--bg-input);
+    color: var(--text-main);
+
+    border: 1px solid var(--border);
+    border-radius: 5px;
+
+    padding: 10px;
+
+    font-size: 14px;
+}
+
+input {
+    margin-bottom: 15px;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-muted);
+}
+
+/* ===========================
+   スクロールバー
+=========================== */
+
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-content);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #4e5058;
+
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #5d6069;
+}
+
+.image-modal {
+    display: none;
+
+    position: fixed;
+    inset: 0;
+
+    z-index: 9999;
+
+    background: rgba(0,0,0,.85);
+
+    justify-content: center;
+    align-items: center;
+}
+
+.image-modal.show {
+    display: flex;
+}
+
+.image-modal-content {
+
+    max-width: 90vw;
+    max-height: 90vh;
+
+    border-radius: 8px;
+}
+
+#closeImageModal {
+
+    position: absolute;
+
+    top: 20px;
+    right: 30px;
+
+    color: white;
+
+    font-size: 42px;
+
+    cursor: pointer;
+}
