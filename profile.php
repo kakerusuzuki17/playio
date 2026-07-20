@@ -366,7 +366,7 @@ $favoriteGameCount = count($favoriteGames);
 
                             <?php
                                 $profileUrl =
-                                    "profile.php?account_id=" .
+                                    "http://www.lltoad.shop/profile.php?account_id=" .
                                     urlencode($profileUser["account_id"]);
                                 ?>
 
@@ -912,7 +912,7 @@ $favoriteGameCount = count($favoriteGames);
                 <strong>
                     <?php
                     $profileUrl =
-                        "profile.php?account_id=" .
+                        "http://www.lltoad.shop/profile.php?account_id=" .
                         urlencode($profileUser["account_id"]);
                     ?>
 

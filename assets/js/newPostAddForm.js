@@ -73,6 +73,7 @@ function updateCategoryInput() {
                     name="high_score"
                     id="highScore"
                     min="0"
+                    step="0.001"
                     placeholder="例：1000"
                     required
                 >

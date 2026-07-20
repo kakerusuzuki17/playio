@@ -24,16 +24,20 @@ $spoiler = isset($_POST["spoiler"]) ? 1 : 0;
 
 $high_score = $_POST["high_score"]?? null;
 
-$clearHours = (int)($_POST["clear_time_hour"]) ?? 0;
-$clearMinutes = (int)($_POST["clear_time_minute"]) ?? 0;
-$clearSeconds = (int)($_POST["clear_time_second"]) ?? 0;
-$clearCenciseconds = (int)($_POST["clear_time_cenci_seconds"]) ?? 0;
+$clearHours =
+    (int)($_POST["clear_time_hour"] ?? 0);
+$clearMinutes =
+    (int)($_POST["clear_time_minute"] ?? 0);
+$clearSeconds =
+    (int)($_POST["clear_time_second"] ?? 0);
+$clearCentiseconds =
+    (int)($_POST["clear_time_cenci_seconds"] ?? 0);
 
 $clear_time_ms = // クリアタイムをミリ秒に変換
     ($clearHours * 3600000)
     + ($clearMinutes * 60000)
     + ($clearSeconds * 1000)
-    + ($clearCenciseconds * 10);
+    + ($clearCentiseconds * 10);
 
     if ($content === "") {
     header("Location: new_post.php");
@@ -112,10 +116,6 @@ if ($new_division_name !== "") {
 
 } elseif ($division_id !== null) {
 
-    /*
-     * 選択された既存部門が、
-     * 選択中のゲーム・カテゴリに属しているか確認
-     */
     $sql = "
         SELECT id
         FROM divisions
@@ -134,22 +134,29 @@ if ($new_division_name !== "") {
     ]);
 
     if (!$stmt->fetchColumn()) {
-        $_SESSION["error"] = "選択された部門が正しくありません。";
+        $_SESSION["error"] =
+            "選択された部門が正しくありません。";
+
         header("Location: new_post.php");
         exit;
     }
+}
 
-// タイムアタック・ハイスコアは部門必須
+/*
+|--------------------------------------------------------------------------
+| タイムアタック・ハイスコアは部門必須
+|--------------------------------------------------------------------------
+*/
 
-    if (
-        in_array((int)$category_id, [1, 2], true) &&
-        $division_id === null &&
-        $new_division_name === ""
-    ) {
-        $_SESSION["error"] = "タイムアタック・ハイスコアでは部門を選択、または新しく作成してください。";
-        header("Location: new_post.php");
-        exit;
-    }
+if (
+    in_array((int)$category_id, [1, 2], true) &&
+    $division_id === null
+) {
+    $_SESSION["error"] =
+        "タイムアタック・ハイスコアでは部門が必須です。";
+
+    header("Location: new_post.php");
+    exit;
 }
 
 // 投稿をpostsにINSERT
@@ -230,7 +237,7 @@ if ($tagsText !== "") {
 
 if ($category_id == 1 && $high_score !== null) {
     // ハイスコアをhighScoreにINSERT
-    $sql= "INSERT INTO highScore(
+    $sql= "INSERT INTO highscore(
             post_id,
             score
         )
@@ -244,7 +251,7 @@ if ($category_id == 1 && $high_score !== null) {
 } 
 elseif ($category_id == 2 && $clear_time_ms !== null) {
     // クリアタイムをclearTimeにINSERT
-    $sql = "INSERT INTO clearTime(
+    $sql = "INSERT INTO cleartime(
             post_id,
             time_ms
         )
@@ -258,40 +265,58 @@ elseif ($category_id == 2 && $clear_time_ms !== null) {
 }
 
 // メディアファイルの保存
-foreach ($_FILES["media"]["tmp_name"] as $i => $tmpName) {
+if (
+    isset($_FILES["media"]["tmp_name"]) &&
+    is_array($_FILES["media"]["tmp_name"])
+) {
+    foreach ($_FILES["media"]["tmp_name"] as $i => $tmpName) {
 
-    if ($tmpName === "") {
-        continue;
+        if (
+            $tmpName === "" ||
+            $_FILES["media"]["error"][$i] !== UPLOAD_ERR_OK
+        ) {
+            continue;
+        }
+
+        $fileName =
+            uniqid("", true)
+            . "_"
+            . basename($_FILES["media"]["name"][$i]);
+
+        $uploadPath = __DIR__ . "/uploads/" . $fileName;
+
+        if (!move_uploaded_file($tmpName, $uploadPath)) {
+            throw new RuntimeException(
+                "画像・動画の保存に失敗しました。"
+            );
+        }
+
+        $mime = mime_content_type($uploadPath);
+
+        $type =
+            strpos($mime, "video/") === 0
+                ? "video"
+                : "image";
+
+        $sql = "
+            INSERT INTO post_media (
+                post_id,
+                file_name,
+                file_type,
+                display_order
+            )
+            VALUES (?, ?, ?, ?)
+        ";
+
+        $stmt = $pdo->prepare($sql);
+
+        $stmt->execute([
+            $post_id,
+            $fileName,
+            $type,
+            $i + 1
+        ]);
     }
-
-    $fileName = uniqid() . "_" . basename($_FILES["media"]["name"][$i]);
-
-    move_uploaded_file(
-        $tmpName,
-        "uploads/" . $fileName
-    );
-
-    $mime = mime_content_type("uploads/" . $fileName);
-
-    $type = str_starts_with($mime, "video/")
-        ? "video"
-        : "image";
-
-    $sql = "INSERT INTO post_media
-        (
-            post_id,
-            file_name,
-            file_type,
-            display_order
-        )
-        VALUES (?, ?, ?, ?)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        $post_id,
-        $fileName,
-        $type,
-        $i + 1
-    ]);
 }
 
 header("Location: home.php");

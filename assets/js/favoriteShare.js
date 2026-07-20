@@ -163,7 +163,7 @@ document.addEventListener("DOMContentLoaded", () => {
         shareButton.dataset.profileUrl ?? "";
 
     const tweetText =
-        "私のお気に入りゲームです！\n\n" +
+        "私のお気に入りゲームはこれ！\nみんなもPlayioでゲームの記録を見よう！残そう！\n\n" +
         profileUrl +
         "\n\n#Playio";
 
