@@ -458,7 +458,7 @@ function formatTimeMs($timeMs)
                                 ?>
 
                                 <?php if (!empty($mediaList)): ?>
-                                    <div class="post-media-grid media-count-<?= count($mediaList) ?>">
+                                    <div class="post-media-slider media-count-<?= count($mediaList) ?>">
 
                                         <?php foreach ($mediaList as $media): ?>
                                             <?php
@@ -467,27 +467,39 @@ function formatTimeMs($timeMs)
                                                     rawurlencode($media["file_name"]);
                                             ?>
 
-                                            <?php if ($media["file_type"] === "image"): ?>
+                                            <div class="post-media-slide">
 
-                                                <img
-                                                    src="<?= htmlspecialchars($fileUrl) ?>"
-                                                    alt="投稿画像"
-                                                    class="post-media-item zoom-image"
-                                                >
+                                                <?php if ($media["file_type"] === "image"): ?>
 
-                                            <?php elseif ($media["file_type"] === "video"): ?>
-
-                                                <video
-                                                    class="post-media-item"
-                                                    controls
-                                                    preload="metadata"
-                                                >
-                                                    <source
-                                                        src="<?= htmlspecialchars($fileUrl) ?>"
+                                                    <img
+                                                        src="<?= htmlspecialchars(
+                                                            $fileUrl,
+                                                            ENT_QUOTES,
+                                                            "UTF-8"
+                                                        ) ?>"
+                                                        alt="投稿画像"
+                                                        class="post-media-item zoom-image"
                                                     >
-                                                </video>
 
-                                            <?php endif; ?>
+                                                <?php elseif ($media["file_type"] === "video"): ?>
+
+                                                    <video
+                                                        class="post-media-item"
+                                                        controls
+                                                        preload="metadata"
+                                                    >
+                                                        <source
+                                                            src="<?= htmlspecialchars(
+                                                                $fileUrl,
+                                                                ENT_QUOTES,
+                                                                "UTF-8"
+                                                            ) ?>"
+                                                        >
+                                                    </video>
+
+                                                <?php endif; ?>
+
+                                            </div>
 
                                         <?php endforeach; ?>
 

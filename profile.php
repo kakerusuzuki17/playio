@@ -542,42 +542,54 @@ $favoriteGameCount = count($favoriteGames);
                             <!-- 画像・動画 -->
                             <?php $mediaList = $postMedia[$post["id"]] ?? []; ?>
 
-                            <?php if (!empty($mediaList)): ?>
+                                <?php if (!empty($mediaList)): ?>
+                                    <div class="post-media-slider media-count-<?= count($mediaList) ?>">
 
-                                <div class="post-media-grid media-count-<?= count($mediaList) ?>">
+                                        <?php foreach ($mediaList as $media): ?>
+                                            <?php
+                                                $fileUrl =
+                                                    "uploads/" .
+                                                    rawurlencode($media["file_name"]);
+                                            ?>
 
-                                    <?php foreach ($mediaList as $media): ?>
+                                            <div class="post-media-slide">
 
-                                        <?php
-                                        $fileUrl = "uploads/" . rawurlencode(
-                                            $media["file_name"]
-                                        );
-                                        ?>
+                                                <?php if ($media["file_type"] === "image"): ?>
 
-                                        <?php if ($media["file_type"] === "image"): ?>
+                                                    <img
+                                                        src="<?= htmlspecialchars(
+                                                            $fileUrl,
+                                                            ENT_QUOTES,
+                                                            "UTF-8"
+                                                        ) ?>"
+                                                        alt="投稿画像"
+                                                        class="post-media-item zoom-image"
+                                                    >
 
-                                            <img
-                                                src="<?= htmlspecialchars($fileUrl) ?>"
-                                                alt="投稿画像"
-                                                class="post-media-item zoom-image"
-                                            >
+                                                <?php elseif ($media["file_type"] === "video"): ?>
 
-                                        <?php elseif ($media["file_type"] === "video"): ?>
+                                                    <video
+                                                        class="post-media-item"
+                                                        controls
+                                                        preload="metadata"
+                                                    >
+                                                        <source
+                                                            src="<?= htmlspecialchars(
+                                                                $fileUrl,
+                                                                ENT_QUOTES,
+                                                                "UTF-8"
+                                                            ) ?>"
+                                                        >
+                                                    </video>
 
-                                            <video
-                                                class="post-media-item"
-                                                controls
-                                                preload="metadata"
-                                            >
-                                                <source
-                                                    src="<?= htmlspecialchars($fileUrl) ?>"
-                                                >
-                                                動画を再生できません。
-                                            </video>
-                                        <?php endif; ?>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
+                                                <?php endif; ?>
+
+                                            </div>
+
+                                        <?php endforeach; ?>
+
+                                    </div>
+                                <?php endif; ?>
 
                             <!-- ハイスコア -->
                             <div class="post-records">

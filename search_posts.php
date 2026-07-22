@@ -559,42 +559,54 @@ function formatTimeMs($timeMs)
                         $mediaList = $postMedia[$post["id"]] ?? [];
                         ?>
 
-                        <?php if (!empty($mediaList)): ?>
-                            <div class="post-media-grid media-count-<?= count($mediaList) ?>">
+                                <?php if (!empty($mediaList)): ?>
+                                    <div class="post-media-slider media-count-<?= count($mediaList) ?>">
 
-                                <?php foreach ($mediaList as $media): ?>
+                                        <?php foreach ($mediaList as $media): ?>
+                                            <?php
+                                                $fileUrl =
+                                                    "uploads/" .
+                                                    rawurlencode($media["file_name"]);
+                                            ?>
 
-                                    <?php
-                                    $fileUrl = "uploads/" . rawurlencode($media["file_name"]);
-                                    ?>
+                                            <div class="post-media-slide">
 
-                                    <?php if ($media["file_type"] === "image"): ?>
+                                                <?php if ($media["file_type"] === "image"): ?>
 
-                                        <img
-                                            src="<?= htmlspecialchars($fileUrl) ?>"
-                                            alt="投稿画像"
-                                            class="post-media-item zoom-image"
-                                        >
+                                                    <img
+                                                        src="<?= htmlspecialchars(
+                                                            $fileUrl,
+                                                            ENT_QUOTES,
+                                                            "UTF-8"
+                                                        ) ?>"
+                                                        alt="投稿画像"
+                                                        class="post-media-item zoom-image"
+                                                    >
 
-                                    <?php elseif ($media["file_type"] === "video"): ?>
+                                                <?php elseif ($media["file_type"] === "video"): ?>
 
-                                        <video
-                                            class="post-media-item"
-                                            controls
-                                            preload="metadata"
-                                        >
-                                            <source
-                                                src="<?= htmlspecialchars($fileUrl) ?>"
-                                            >
-                                            動画を再生できません。
-                                        </video>
+                                                    <video
+                                                        class="post-media-item"
+                                                        controls
+                                                        preload="metadata"
+                                                    >
+                                                        <source
+                                                            src="<?= htmlspecialchars(
+                                                                $fileUrl,
+                                                                ENT_QUOTES,
+                                                                "UTF-8"
+                                                            ) ?>"
+                                                        >
+                                                    </video>
 
-                                    <?php endif; ?>
+                                                <?php endif; ?>
 
-                                <?php endforeach; ?>
+                                            </div>
 
-                            </div>
-                        <?php endif; ?>
+                                        <?php endforeach; ?>
+
+                                    </div>
+                                <?php endif; ?>
 
                             <div class="post-records">
 

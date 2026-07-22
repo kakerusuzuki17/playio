@@ -290,64 +290,57 @@
    写真・動画
 =========================== */
 
-.post-media-grid {
-    display: grid;
+.post-media-slider {
+    display: flex;
+    gap: 10px;
 
-    gap: 6px;
+    width: 100%;
+    max-width: 100%;
 
     margin: 14px 0;
+    padding-bottom: 8px;
 
-    justify-content: start;
+    overflow-x: auto;
+    overflow-y: hidden;
 
-    max-width: 100%;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
 }
 
-/* 1枚 */
+/* 画像・動画1枚ずつを1ページとして扱う */
+.post-media-slide {
+    flex: 0 0 100%;
+    min-width: 0;
 
-.post-media-grid.media-count-1 {
-    grid-template-columns: minmax(0, 600px);
+    scroll-snap-align: start;
 }
 
-/* 2枚 */
-
-.post-media-grid.media-count-2 {
-    grid-template-columns: repeat(2, 360px);
-}
-
-/* 3枚 */
-
-.post-media-grid.media-count-3 {
-    grid-template-columns: repeat(3, 280px);
-}
-
-/* 4枚 */
-
-.post-media-grid.media-count-4 {
-    grid-template-columns: repeat(4, 240px);
-}
-
+/* 共通 */
 .post-media-item {
     display: block;
 
     width: 100%;
-    height: 180px;
-
-    object-fit: contain;
-
-    background: #111214;
+    max-width: 100%;
 
     border: 1px solid var(--border);
     border-radius: 8px;
+
+    background: #111214;
 }
 
-/* 1枚だけ大きく表示 */
-
-.media-count-1 .post-media-item {
-    width: 100%;
+/* 画像は全体を表示 */
+img.post-media-item {
     height: auto;
+    max-height: 650px;
 
-    max-width: 600px;
-    max-height: 450px;
+    object-fit: contain;
+}
+
+/* 動画は高さをある程度固定 */
+video.post-media-item {
+    height: 450px;
+
+    object-fit: contain;
 }
 
 /* ===========================
@@ -490,4 +483,50 @@
 
     font-size: 13px;
     font-weight: bold;
+}
+
+.post-media-slider {
+    display: flex;
+    gap: 10px;
+
+    margin: 14px 0;
+
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    scroll-behavior: smooth;
+}
+
+/* 1枚だけ */
+.post-media-slider.media-count-1 .post-media-slide {
+    flex: 0 0 100%;
+}
+
+.post-media-slider.media-count-1 .post-media-item {
+    width: 100%;
+    height: auto;
+
+    max-height: 600px;
+
+    object-fit: contain;
+
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #111214;
+}
+
+/* 2枚以上 */
+.post-media-slider:not(.media-count-1) .post-media-slide {
+    flex: 0 0 auto;
+}
+
+.post-media-slider:not(.media-count-1) .post-media-item {
+    width: 560px;
+    height: 320px;
+
+    object-fit: cover;
+
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #111214;
 }

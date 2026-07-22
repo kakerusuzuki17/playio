@@ -1,6 +1,36 @@
 <?php
 $currentPage =
     basename($_SERVER["PHP_SELF"]);
+
+$currentUserId = (int)$_SESSION["id"];
+
+$sql = "
+SELECT COUNT(*)
+FROM likes
+JOIN posts
+    ON likes.post_id = posts.id
+WHERE posts.user_id = ?
+  AND likes.user_id <> ?
+  AND likes.created_at >
+      COALESCE(
+          (
+              SELECT notice_final_datetime
+              FROM users
+              WHERE id = ?
+          ),
+          '1970-01-01 00:00:00'
+      )
+";
+
+$stmt = $pdo->prepare($sql);
+
+$stmt->execute([
+    $currentUserId,
+    $currentUserId,
+    $currentUserId
+]);
+
+$unreadNotificationCount = (int)$stmt->fetchColumn();
 ?>
 
 <aside class="sidebar">
@@ -34,6 +64,24 @@ $currentPage =
                     : "" ?>"
             >
                 👤 プロフィール
+            </a>
+        </li>
+
+        <li>
+            <a href="notifications.php" class="sidebar-notification-link">
+
+                <span>🔔 通知</span>
+
+                <?php if ($unreadNotificationCount > 0): ?>
+
+                    <span class="notification-badge">
+                        ❤️<?= $unreadNotificationCount > 99
+                            ? "99+"
+                            : $unreadNotificationCount ?>
+                    </span>
+
+                <?php endif; ?>
+
             </a>
         </li>
 
